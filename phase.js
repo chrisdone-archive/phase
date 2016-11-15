@@ -1,5 +1,6 @@
 $(function(){
   var debug = false;
+  var oldline = 0;
   var conn = new WebSocket('ws://127.0.0.1:2016/');
   conn.onopen = function () {
     conn.send('Ping');
@@ -9,7 +10,40 @@ $(function(){
   };
   conn.onmessage = function (e) {
     var reply = JSON.parse(e.data);
-    if (reply['type'] == 'faces') {
+    // console.log(reply);
+    if (reply['type'] == 'point') {
+      var buffer = document.getElementById('buffer');
+      var xs = buffer.children;
+      var line = reply.line;
+      if (xs[oldline-1] && oldline != line) {
+        xs[oldline-1].innerHTML = xs[oldline-1].innerHTML.replace(/<i>(.*?)<\/i>/,'$1');
+      }
+      oldline = line;
+      for (var i = 0; i < xs.length; i++) {
+        if (i+1 == line) {
+          var curcol = 0;
+          var html = xs[i].innerHTML;
+          var column = reply.column;
+          xs[i].innerHTML =
+            html.replace(/<i>(.*?)<\/i>/,'$1').replace(
+              /<span([^>]*)>([^<]+)<\/span>/g,
+            function(orig,attrs,x0){
+              var x = x0;
+              if (curcol + x0.length > column && curcol <= column) {
+                x = x.substring(0, column - curcol) + '<i>' +
+                x.substring(column - curcol,(column - curcol)+1) + '</i>' +
+                x.substring((column - curcol)+1);
+                curcol += x0.length;
+                return '<span' + attrs + '>' + x + '</span>';
+              } else {
+                curcol += x0.length;
+                return orig;
+              }
+            })
+          break;
+        }
+      }
+    } else if (reply['type'] == 'faces') {
       var faces = reply.faces;
       // console.log(faces);
       var rules = [];
@@ -37,6 +71,7 @@ $(function(){
           i--;
           offset++;
         }
+        if (j+1>end) break;
       }
       for (var i = 0; i < len; i++) {
         var el = document.createElement('div');

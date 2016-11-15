@@ -1,29 +1,6 @@
 pre { font-family: menlo; font-size: 12px }
-
-/* .face-font-lock-comment-delimiter-face { */
-/*   color: #666; */
-/* } */
-
-/* .face-font-lock-comment-face { */
-/*   color: #666; */
-/* } */
-
-/* .face-font-lock-keyword-face { */
-/*   color: #2e659c; */
-/* } */
-
-/* .face-font-lock-constant-face { */
-/*   color: #8f4e8b; */
-/* } */
-
-/* .face-font-lock-builtin-face { */
-/*   color: #397460 */
-/* } */
-
-/* .face-font-lock-string-face { */
-/*   color: #397460 */
-/* } */
-
-/* .face-esk-paren-face { */
-/*   color: #999; */
-/* } */
+i {
+  font-style: normal;
+  background: #222;
+  color: #fff;
+}

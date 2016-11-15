@@ -19,7 +19,11 @@
 
 (require 'websocket)
 
-(setq websocket-debug t)
+(setq websocket-debug t) ;; just for debugging purposes
+
+(defun hello ()
+  (interactive)
+  (format "x" sup))
 
 (defvar phase-socket
   (websocket-server
@@ -63,15 +67,29 @@
        0
        end-line 0 end-line))))
 
+(defvar-local phase-point 0)
+(add-hook 'post-command-hook 'phase-post-command-function t t)
+(defun phase-post-command-function ()
+  (when (not (= phase-point (point)))
+    (setq phase-point (point))
+    (websocket-send-text
+     phase-client
+     (concat
+      "{"
+      "\"type\": \"point\","
+      "\"line\": " (number-to-string (line-number-at-pos)) ","
+      "\"column\": " (number-to-string (current-column))
+      "}"))))
+
 (defvar-local phase-change-lines nil)
-(add-hook 'before-change-functions 'phase-before-change-function) ;; TODO: just local atm
+(add-hook 'before-change-functions 'phase-before-change-function nil t) ;; TODO: just local atm
 (defun phase-before-change-function (beg end)
   (when (eq (current-buffer) phase-buffer)
     (let ((start-line (save-excursion (goto-char beg) (line-number-at-pos)))
           (end-line (save-excursion (goto-char end) (line-number-at-pos))))
       (setq phase-change-lines (cons start-line end-line)))))
 
-(add-hook 'after-change-functions 'phase-after-change-function) ;; TODO: just local atm
+(add-hook 'after-change-functions 'phase-after-change-function nil t) ;; TODO: just local atm
 (defun phase-after-change-function (beg end _)
   (when (eq (current-buffer) phase-buffer)
     (let ((before-start-line (car phase-change-lines))
