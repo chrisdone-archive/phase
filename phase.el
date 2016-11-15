@@ -46,65 +46,85 @@
                                   (face-foreground face nil 'default)))
                           (face-list))))
           "}")))
-    (websocket-send-text
-     socket
-     )))
+    (websocket-send-text socket output)))
 
 (defun phase-on-close (socket)
   )
 
 (defun phase-on-message (socket frame)
-  (message "Received: %S" (websocket-frame-text frame))
+  ;; (message "Received: %S" (websocket-frame-text frame))
   (with-current-buffer phase-buffer
-    (phase-send-region
-     socket
-     (current-buffer)
-     0
-     (save-excursion (goto-char (point-max))
-                     (line-number-at-pos)))))
+    (let ((end-line
+           (save-excursion (goto-char (point-max))
+                           (line-number-at-pos))))
+      (phase-send-region
+       socket
+       (current-buffer)
+       0
+       end-line 0 end-line))))
 
 (defvar-local phase-change-lines nil)
 (add-hook 'before-change-functions 'phase-before-change-function) ;; TODO: just local atm
 (defun phase-before-change-function (beg end)
   (when (eq (current-buffer) phase-buffer)
-    (setq phase-change-lines
-          (cons (save-excursion (goto-char beg) (line-number-at-pos))
-                (save-excursion (goto-char end) (line-number-at-pos))))))
+    (let ((start-line (save-excursion (goto-char beg) (line-number-at-pos)))
+          (end-line (save-excursion (goto-char end) (line-number-at-pos))))
+      (setq phase-change-lines (cons start-line end-line)))))
 
 (add-hook 'after-change-functions 'phase-after-change-function) ;; TODO: just local atm
 (defun phase-after-change-function (beg end _)
   (when (eq (current-buffer) phase-buffer)
-    (let ((start-line (car phase-change-lines))
-          (end-line (cdr phase-change-lines)))
-      (phase-send-region phase-client (current-buffer) start-line end-line))))
+    (let ((before-start-line (car phase-change-lines))
+          (before-end-line (cdr phase-change-lines))
+          (after-start-line (save-excursion (goto-char beg) (line-number-at-pos)))
+          (after-end-line (save-excursion (goto-char end) (line-number-at-pos))))
+      ;; (message "Before lines: %d-%d" before-start-line before-end-line)
+      ;; (message "After lines: %d-%d" after-start-line after-end-line)
+      (phase-send-region
+       phase-client
+       (current-buffer)
+       before-start-line
+       before-end-line
+       after-start-line
+       after-end-line))))
 
-(defun phase-send-region (socket buffer start-line end-line)
+(defun phase-send-region (socket
+                          buffer
+                          before-start-line
+                          before-end-line
+                          after-start-line
+                          after-end-line)
   (websocket-send-text
    socket
    (concat
     "{"
     "\"type\": \"region\","
-    "\"beg\":" (number-to-string start-line) ","
-    "\"end\":" (number-to-string end-line) ","
-    "\"lines\": " (phase-region-json buffer start-line end-line)
+    "\"beg\":" (number-to-string before-start-line) ","
+    "\"end\":" (number-to-string before-end-line) ","
+    "\"lines\": " (phase-region-json buffer after-start-line after-end-line)
     "}")))
 
-(defun phase-region-json (buffer beg end)
+(defun phase-region-json (buffer start-line end-line)
   (with-current-buffer buffer
     (json-encode-array
      (mapcar (lambda (line)
-               (list :text line :faces (phase-string-faces line)))
-             (split-string
-              (buffer-substring
-               (save-excursion
-                 (goto-char (point-min))
-                 (forward-line (1- beg))
-                 (line-beginning-position))
-               (save-excursion
-                 (goto-char (point-min))
-                 (forward-line (1- end))
-                 (line-end-position)))
-              "\n")))))
+               (list :text line
+                     :faces (phase-string-faces line)
+                     ))
+             (phase-buffer-lines start-line end-line)))))
+
+(defun phase-buffer-lines (start-line end-line)
+  (split-string
+   (buffer-substring
+    (save-excursion
+      (goto-char (point-min))
+      (forward-line (1- start-line))
+      (line-beginning-position))
+    (save-excursion
+      (goto-char (point-min))
+      (forward-line (1- end-line))
+      (line-end-position)))
+   "\n"))
 
 (defun phase-string-faces (object)
   (let ((point 0)
@@ -120,10 +140,5 @@
         (push (get-text-property point 'face object) faces)
         (setq point next-change)))
     (reverse faces)))
-
-(defun foo ()
-  "what's going on?"
-  (case etc);; blah
-  )
 
 (provide 'phase)

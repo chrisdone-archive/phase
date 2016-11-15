@@ -1,4 +1,5 @@
 $(function(){
+  var debug = false;
   var conn = new WebSocket('ws://127.0.0.1:2016/');
   conn.onopen = function () {
     conn.send('Ping');
@@ -19,16 +20,22 @@ $(function(){
       style.innerHTML = rules.join('\n');
       document.body.appendChild(style);
     } else if (reply['type'] == 'region') {
+      if(debug) console.log(reply);
       var buffer = document.getElementById('buffer');
       var start = reply.beg;
       var end = reply.end;
-      console.log('%d - %d',start,end);
+      if (debug) console.log('From line %d to line %d',start,end);
       var lines = reply.lines, len = lines.length;
       var anchor = null;
+      var offset = 0;
       for (var i = 0 ; i < buffer.children.length; i++) {
-        if (i+1 >= start && i+1 <= end) {
+        var j = i + offset;
+        if (j+1 >= start && j+1 <= end) {
+          if (debug) console.log("Deleting line %d (%o)",j+1,buffer.children[i].innerText);
           anchor = buffer.children[i+1];
           buffer.removeChild(buffer.children[i]);
+          i--;
+          offset++;
         }
       }
       for (var i = 0; i < len; i++) {
@@ -50,6 +57,11 @@ $(function(){
           }
         } else {
           el.innerText = text;
+        }
+        if (anchor){
+          if (debug) console.log("Inserting line %o before %o", text, anchor.innerText);
+        } else {
+          if (debug) console.log("Appending line %o", text);
         }
         buffer.insertBefore(el,anchor);
       }
