@@ -21,10 +21,6 @@
 
 (setq websocket-debug t) ;; just for debugging purposes
 
-(defun hello ()
-  (interactive)
-  (format "x" sup))
-
 (defvar phase-socket
   (websocket-server
    2016
