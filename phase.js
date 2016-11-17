@@ -1,9 +1,6 @@
 $(function(){
   var debug = false;
   var oldline = 0;
-  // hello world!
-  // this is the grossest JS code known to man
-  // and it's not even that optimized
   var conn = new WebSocket('ws://localhost:2017');
   conn.onopen = function () {
   };
