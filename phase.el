@@ -230,7 +230,7 @@ TOOD: optimize."
              (or (next-property-change point object)
                  point-max)))
         (push point faces)
-        (push next-change faces) ;; hello world!
+        (push next-change faces)
         (push (get-text-property point 'face object) faces)
         (setq point next-change)))
     (reverse faces)))
