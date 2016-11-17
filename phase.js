@@ -1,9 +1,11 @@
 $(function(){
   var debug = false;
   var oldline = 0;
-  var conn = new WebSocket('ws://127.0.0.1:2016/');
+  // hello world!
+  // this is the grossest JS code known to man
+  // and it's not even that optimized
+  var conn = new WebSocket('ws://localhost:2017');
   conn.onopen = function () {
-    conn.send('Ping');
   };
   conn.onerror = function (error) {
     console.log('WebSocket Error ' + error);
@@ -12,6 +14,7 @@ $(function(){
     var reply = JSON.parse(e.data);
     // console.log(reply);
     if (reply['type'] == 'point') {
+      console.log('point');
       var buffer = document.getElementById('buffer');
       var xs = buffer.children;
       var line = reply.line;
