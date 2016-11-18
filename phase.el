@@ -147,16 +147,19 @@
   (let ((start-line (save-excursion (goto-char beg) (line-number-at-pos)))
         (end-line (save-excursion (goto-char end) (line-number-at-pos))))
     (run-with-idle-timer
-     1
+     0
      nil
      (lambda (buffer start-line end-line)
        (dolist (connection phase-clients)
-         (phase-send-region
-          connection
-          buffer
-          start-line end-line
-          start-line end-line)))
-     buffer start-line end-line)))
+         (with-current-buffer buffer
+           (phase-send-region
+            connection
+            buffer
+            start-line end-line
+            start-line end-line))))
+     (current-buffer)
+     start-line
+     end-line)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Transmission functions
