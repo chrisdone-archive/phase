@@ -123,9 +123,7 @@ function insertCursor(root, targetColumn) {
         return;
       } else {
         currentColumn += text.length;
-        for (; !currentNode.nextSibling && currentNode.parentNode && currentNode.parentNode !== root; currentNode = currentNode.parentNode) {
-
-        }
+        for (; !currentNode.nextSibling && currentNode.parentNode && currentNode.parentNode !== root; currentNode = currentNode.parentNode);
         currentNode = currentNode.nextSibling;
         continue;
       }
