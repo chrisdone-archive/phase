@@ -1,3 +1,7 @@
+// Globals
+
+var cursor = document.createElement('i');
+
 $(function(){
   var debug = false;
   var oldline = 0;
@@ -11,36 +15,14 @@ $(function(){
     var reply = JSON.parse(e.data);
     // console.log(reply);
     if (reply['type'] == 'point') {
-      console.log('point');
       var buffer = document.getElementById('buffer');
       var xs = buffer.children;
       var line = reply.line;
-      if (xs[oldline-1] && oldline != line) {
-        xs[oldline-1].innerHTML = xs[oldline-1].innerHTML.replace(/<i>(.*?)<\/i>/,'$1');
-      }
-      oldline = line;
+      restoreCursor();
       for (var i = 0; i < xs.length; i++) {
         if (i+1 == line) {
-          var curcol = 0;
-          var html = xs[i].innerHTML;
-          var column = reply.column;
-          xs[i].innerHTML =
-            html.replace(/<i>(.*?)<\/i>/,'$1').replace(
-              /<span([^>]*)>([^<]+)<\/span>/g,
-            function(orig,attrs,x0){
-              var x = x0;
-              if (curcol + x0.length > column && curcol <= column) {
-                x = x.substring(0, column - curcol) + '<i>' +
-                x.substring(column - curcol,(column - curcol)+1) + '</i>' +
-                x.substring((column - curcol)+1);
-                curcol += x0.length;
-                return '<span' + attrs + '>' + x + '</span>';
-              } else {
-                curcol += x0.length;
-                return orig;
-              }
-            })
-          break;
+          var root = xs[i];
+          insertCursor(root, reply.column);
         }
       }
     } else if (reply['type'] == 'faces') {
@@ -103,3 +85,62 @@ $(function(){
     }
   };
 });
+
+// Restore the content at the current position of the cursor.
+function restoreCursor() {
+  if (cursor.parentNode && cursor.className == 'phase-cursor') {
+    cursor.parentNode.insertBefore(cursor.firstChild, cursor);
+  }
+}
+
+// Insert a cursor in the given line.
+function insertCursor(root, targetColumn) {
+  for (var currentColumn = 0, currentNode = root; currentNode;) {
+    if (currentNode.nodeType === Node.TEXT_NODE) {
+      var text = currentNode.textContent;
+      if (currentColumn + text.length > targetColumn) {
+        var parent = currentNode.parentNode;
+        var before =
+            document.createTextNode(
+              text.substring(0,targetColumn - currentColumn));
+        var middle =
+            text.substring(targetColumn - currentColumn,
+                           (targetColumn - currentColumn) + 1);
+        var after =
+            document.createTextNode(
+              text.substring((targetColumn - currentColumn) + 1));
+        cursor.innerText = middle;
+        if (middle.length == 0) {
+          cursor.className = 'phase-cursor-empty';
+          cursor.innerHTML = '&nbsp;';
+        }
+        else
+          cursor.className = 'phase-cursor';
+        parent.insertBefore(after, currentNode);
+        parent.insertBefore(cursor, after);
+        parent.insertBefore(before, cursor);
+        parent.removeChild(currentNode);
+        return;
+      } else {
+        currentColumn += text.length;
+        for (; !currentNode.nextSibling && currentNode.parentNode && currentNode.parentNode !== root; currentNode = currentNode.parentNode) {
+
+        }
+        currentNode = currentNode.nextSibling;
+        continue;
+      }
+    } else {
+      if (currentNode.firstChild) {
+        currentNode = currentNode.firstChild;
+        continue;
+      } else if (currentNode.nextSibling) {
+        currentNode = currentNode.nextSibling;
+        continue;
+      }
+    }
+    break;
+  }
+  cursor.innerHTML = '&nbsp;';
+  cursor.className = 'phase-cursor-empty';
+  root.appendChild(cursor);
+}
