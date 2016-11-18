@@ -111,8 +111,13 @@
   "Handle point movement."
   (when (not (= phase-point (point)))
     (setq phase-point (point))
-    (dolist (connection phase-clients)
-      (phase-send-point connection phase-point))))
+    (save-excursion
+      (run-with-timer
+       0
+       nil
+       (lambda ()
+         (dolist (connection phase-clients)
+           (phase-send-point connection phase-point)))))))
 
 (defun phase-before-change-function (beg end)
   "Handle change about to occur between BEG and END."
