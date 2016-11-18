@@ -99,7 +99,7 @@
 
 (defun phase-on-close (connection)
   "Callback when a CONNECTION is closed."
-  (delete connection phase-clients))
+  (setq phase-clients (delete connection phase-clients)))
 
 (defun phase-on-message (connection message)
   "Callback when a CONNECTION receives a MESSAGE.")
@@ -138,6 +138,14 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Transmission functions
 
+(defun phase-websocket-send (websocket text)
+  "On WEBSOCKET send TEXT, but only if WEBSOCKET is open.
+
+Do not throw an error if it is closed."
+  (if (websocket-openp websocket)
+      (websocket-send-text websocket text)
+    (message "Ignoring closed socket.")))
+
 (defun phase-send-buffer-contents (connection)
   "Send the current buffer contents to CONNECTION."
   (let ((end-line
@@ -154,7 +162,7 @@
 Result is to remove the lines between BEFORE-START-LINE and
 BEFORE-END-LINE, and insert the contents between AFTER-START-LINE
 and AFTER-END-LINE."
-  (websocket-send-text
+  (phase-websocket-send
    connection
    (concat
     "{"
@@ -166,7 +174,7 @@ and AFTER-END-LINE."
 
 (defun phase-send-point (connection point)
   "On CONNECTION send the current POINT."
-  (websocket-send-text
+  (phase-websocket-send
    connection
    (concat
     "{"
@@ -188,7 +196,7 @@ and AFTER-END-LINE."
                                   (face-foreground face nil 'default)))
                           (face-list))))
           "}")))
-    (websocket-send-text connection output)))
+    (phase-websocket-send connection output)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Buffer data functions
