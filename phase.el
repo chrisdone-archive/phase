@@ -171,8 +171,9 @@ connection, which should be kept in order to pass to
 
 (defun phase-on-message (connection message)
   "Callback when a CONNECTION receives a MESSAGE."
-  (message "%S" (websocket-frame-text message))
-  (execute-kbd-macro (websocket-frame-text message)))
+  ;; (message "%S" (websocket-frame-text message))
+  ;; (execute-kbd-macro (websocket-frame-text message))
+  )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Buffer update hooks
