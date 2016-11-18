@@ -69,6 +69,7 @@
     (add-hook 'post-command-hook 'phase-post-command-function t t)
     (add-hook 'before-change-functions 'phase-before-change-function nil t)
     (add-hook 'after-change-functions 'phase-after-change-function nil t)
+    (add-hook 'jit-lock-functions 'phase-jit-lock-function t t)
     (message "Phasing buffer %s." buffer)))
 
 (defun phase-disable-buffer (buffer)
@@ -78,6 +79,7 @@
     (remove-hook 'post-command-hook 'phase-post-command-function)
     (remove-hook 'before-change-functions 'phase-before-change-function)
     (remove-hook 'after-change-functions 'phase-after-change-function)
+    (remove-hook 'jit-lock-functions 'phase-jit-lock-function)
     (message "No longer phasing buffer %s." buffer)))
 
 (defun phase-refresh-buffer ()
@@ -139,6 +141,22 @@
        before-end-line
        after-start-line
        after-end-line))))
+
+(defun phase-jit-lock-function (beg end)
+  "Handle new fontification between BEG and END."
+  (let ((start-line (save-excursion (goto-char beg) (line-number-at-pos)))
+        (end-line (save-excursion (goto-char end) (line-number-at-pos))))
+    (run-with-idle-timer
+     1
+     nil
+     (lambda (buffer start-line end-line)
+       (dolist (connection phase-clients)
+         (phase-send-region
+          connection
+          buffer
+          start-line end-line
+          start-line end-line)))
+     buffer start-line end-line)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Transmission functions
@@ -212,8 +230,7 @@ and AFTER-END-LINE."
     (json-encode-array
      (mapcar (lambda (line)
                (list :text line
-                     :faces (phase-string-faces line)
-                     ))
+                     :faces (phase-string-faces line)))
              (phase-buffer-lines start-line end-line)))))
 
 (defun phase-buffer-lines (start-line end-line)
