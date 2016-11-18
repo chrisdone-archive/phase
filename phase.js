@@ -100,15 +100,16 @@ function insertCursor(root, targetColumn) {
       var text = currentNode.textContent;
       if (currentColumn + text.length > targetColumn) {
         var parent = currentNode.parentNode;
+        var relativeColumn = targetColumn - currentColumn;
         var before =
             document.createTextNode(
-              text.substring(0,targetColumn - currentColumn));
+              text.substring(0,relativeColumn));
         var middle =
-            text.substring(targetColumn - currentColumn,
-                           (targetColumn - currentColumn) + 1);
+            text.substring(relativeColumn,
+                           (relativeColumn) + 1);
         var after =
             document.createTextNode(
-              text.substring((targetColumn - currentColumn) + 1));
+              text.substring((relativeColumn) + 1));
         cursor.innerText = middle;
         if (middle.length == 0) {
           cursor.className = 'phase-cursor-empty';
