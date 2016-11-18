@@ -2,15 +2,19 @@
 
 var cursor = document.createElement('i');
 
+var debug = false;
+var oldline = 0;
+
 $(function(){
-  var debug = false;
-  var oldline = 0;
-  var conn = new WebSocket('ws://localhost:2017');
+
+  var loc = window.location;
+  var new_uri = "ws://" + loc.host + "/w";
+  var conn = new WebSocket(new_uri);
   conn.onopen = function () {
     $(document).keydown(function(e){
       console.log(e.keyCode);
       if ((e.keyCode >= 37 && e.keyCode <= 40) ||
-         e.keyCode == 8 || e.keyCode == 27
+          e.keyCode == 8 || e.keyCode == 27
          ) {
         conn.send(String.fromCharCode(e.keyCode || e.which));
         return false;
@@ -99,6 +103,7 @@ $(function(){
       }
     }
   };
+
 });
 
 // Restore the content at the current position of the cursor.

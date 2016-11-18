@@ -22,6 +22,7 @@
 ;;; Code:
 
 (require 'websocket)
+(require 'cl)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Global Variables
@@ -29,7 +30,7 @@
 (defvar phase-server nil
   "Current listening server.")
 
-(defvar phase-port 2017
+(defvar phase-port 8080
   "Websocket port to listen on.")
 
 (defvar phase-clients (list)
@@ -55,7 +56,7 @@
   (if phase-server
       (error "Already listening on port %d" phase-port)
     (setq phase-server
-          (websocket-server
+          (phase-websocket-server
            phase-port
            :host 'local
            :on-message 'phase-on-message
@@ -87,6 +88,71 @@
   (interactive)
   (dolist (connection phase-clients)
     (phase-send-buffer-contents connection)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; HTTP->websocket upgrade
+
+(defun phase-websocket-server (port &rest plist)
+  "Open a websocket server on PORT.
+If the plist contains a `:host' HOST pair, this value will be
+used to configure the addresses the socket listens on. The symbol
+`local' specifies the local host. If unspecified or nil, the
+socket will listen on all addresses.
+
+This also takes a plist of callbacks: `:on-open', `:on-message',
+`:on-close' and `:on-error', which operate exactly as documented
+in the websocket client function `websocket-open'.  Returns the
+connection, which should be kept in order to pass to
+`websocket-server-close'."
+  (let* ((conn (make-network-process
+                :name (format "websocket server on port %s" port)
+                :server t
+                :family 'ipv4
+                :noquery t
+                :filter 'phase-negotiate-filter
+                :log 'websocket-server-accept
+                :filter-multibyte nil
+                :plist plist
+                :host (plist-get plist :host)
+                :service port)))
+    conn))
+
+(defun phase-negotiate-filter (process bytes)
+  "Serve up either HTTP content or websocket connection depending
+  on the path. /w for websocket, anything else serves up the HTML
+  content.
+"
+  (cond
+   ((string-match "^GET /w" bytes)
+    ;; TODO: Optimistically assumes we get at least this many bytes,
+    ;; don't assume.
+    (set-process-filter process 'websocket-server-filter)
+    (websocket-server-filter process bytes))
+   (t
+    (process-send-string
+     process
+     (let ((content (phase-html-page)))
+       (format "HTTP/1.1 200 OK\nContent-Type: text/html\nContent-Length: %d\r\n\r\n%s"
+               (length content)
+               content))))))
+
+(defun phase-html-page ()
+  (format "<!doctype>
+<html>
+  <head>
+    <style>%s</style>
+    <title></title>
+  </head>
+  <body>
+    <pre class='phase-buffer' id='buffer'></pre>
+    <script src='https://code.jquery.com/jquery-3.1.0.js'
+            integrity='sha256-slogkvB1K3VOkzAI8QITxV3VzpOnkeNVsKvtkYLMjfk='
+            crossorigin='anonymous'></script>
+    <script>%s</script>
+  </body>
+</html>"
+          (phase-read-file "phase.css")
+          (phase-read-file "phase.js")))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Connection handlers
@@ -267,6 +333,18 @@ TOOD: optimize."
    collect next-change
    collect face
    do (setq point next-change)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; File helpers
+
+(defun phase-read-file (f)
+  "Read from F."
+  (with-temp-buffer
+    (insert-file-contents-literally
+     (expand-file-name f
+                       (file-name-directory
+                        (or load-file-name buffer-file-name default-directory))))
+    (buffer-string)))
 
 (provide 'phase)
 
