@@ -104,7 +104,9 @@
   (setq phase-clients (delete connection phase-clients)))
 
 (defun phase-on-message (connection message)
-  "Callback when a CONNECTION receives a MESSAGE.")
+  "Callback when a CONNECTION receives a MESSAGE."
+  (message "%S" (websocket-frame-text message))
+  (execute-kbd-macro (websocket-frame-text message)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Buffer update hooks

@@ -7,6 +7,21 @@ $(function(){
   var oldline = 0;
   var conn = new WebSocket('ws://localhost:2017');
   conn.onopen = function () {
+    $(document).keydown(function(e){
+      console.log(e.keyCode);
+      if ((e.keyCode >= 37 && e.keyCode <= 40) ||
+         e.keyCode == 8 || e.keyCode == 27
+         ) {
+        conn.send(String.fromCharCode(e.keyCode || e.which));
+        return false;
+      }
+      return true;
+    });
+    $(document).keypress(function(e){
+      console.log('keyypress:%o',e.keyCode || e.which);
+      conn.send(String.fromCharCode(e.keyCode || e.which));
+      return false;
+    });
   };
   conn.onerror = function (error) {
     console.log('WebSocket Error ' + error);
