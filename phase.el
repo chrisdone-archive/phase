@@ -229,19 +229,17 @@ and AFTER-END-LINE."
   "Collect a list of faces that apply to OBJECT.
 
 TOOD: optimize."
-  (let ((point 0)
-        (point-max (length object))
-        (faces (list)))
-    (while (not (>= point point-max))
-      (let ((plist (text-properties-at point object))
-            (next-change
-             (or (next-property-change point object)
-                 point-max)))
-        (push point faces)
-        (push next-change faces)
-        (push (get-text-property point 'face object) faces)
-        (setq point next-change)))
-    (reverse faces)))
+  (cl-loop
+   with point = 0
+   with point-max = (length object)
+   while (not (>= point point-max))
+   for next-change = (or (next-property-change point object)
+                         point-max)
+   for face = (get-text-property point 'face object)
+   collect point
+   collect next-change
+   collect face
+   do (setq point next-change)))
 
 (provide 'phase)
 
