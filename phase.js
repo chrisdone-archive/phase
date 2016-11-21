@@ -1,6 +1,7 @@
 // Globals
 
 var cursor = document.createElement('i');
+var point = {};
 
 var debug = false;
 var oldline = 0;
@@ -11,32 +12,17 @@ $(function(){
   var new_uri = "ws://" + loc.host + "/w";
   var conn = new WebSocket(new_uri);
   conn.onopen = function () {
-    $(document).keydown(function(e){
-      console.log(e.keyCode);
-      if ((e.keyCode >= 37 && e.keyCode <= 40) ||
-          e.keyCode == 8 || e.keyCode == 27
-         ) {
-        conn.send(String.fromCharCode(e.keyCode || e.which));
-        return false;
-      }
-      return true;
-    });
-    $(document).keypress(function(e){
-      console.log('keyypress:%o',e.keyCode || e.which);
-      conn.send(String.fromCharCode(e.keyCode || e.which));
-      return false;
-    });
   };
   conn.onerror = function (error) {
     console.log('WebSocket Error ' + error);
   };
   conn.onmessage = function (e) {
     var reply = JSON.parse(e.data);
-    // console.log(reply);
     if (reply['type'] == 'point') {
       var buffer = document.getElementById('buffer');
       var xs = buffer.children;
       var line = reply.line;
+      point = reply;
       restoreCursor();
       for (var i = 0; i < xs.length; i++) {
         if (i+1 == line) {
@@ -46,7 +32,6 @@ $(function(){
       }
     } else if (reply['type'] == 'faces') {
       var faces = reply.faces;
-      // console.log(faces);
       var rules = [];
       for (var i =0; i < faces.length; i+=2) {
         rules.push('.face-' + faces[i] + ' { color: ' + faces[i+1] + '; }');
@@ -74,7 +59,7 @@ $(function(){
         }
         if (j+1>end) break;
       }
-      for (var i = 0; i < len; i++) {
+      for (var i = 0, line_number = start; i < len; i++, line_number++) {
         var el = document.createElement('div');
         var line = lines[i];
         var text = line.text;
@@ -100,10 +85,13 @@ $(function(){
           if (debug) console.log("Appending line %o", text);
         }
         buffer.insertBefore(el,anchor);
+        if (line_number == point.line) {
+          var curcol = point.column < line.text.length? point.column : line.text.length;
+          insertCursor(el, curcol);
+        }
       }
     }
   };
-
 });
 
 // Restore the content at the current position of the cursor.
