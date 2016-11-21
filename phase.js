@@ -24,6 +24,10 @@ $(function(){
         $(document.body).css('background-color',reply.background_color);
       if (reply.foreground_color)
         $(document.body).css('color',reply.foreground_color);
+      if (reply.cursor_color) {
+        cursor.style.backgroundColor = reply.cursor_color;
+        cursor.style.color = reply.background_color;
+      }
     } else if (reply['type'] == 'point') {
       var buffer = document.getElementById('buffer');
       var xs = buffer.children;

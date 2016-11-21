@@ -304,6 +304,8 @@ and AFTER-END-LINE."
           (json-encode (frame-parameter (selected-frame) 'background-color))
           ",\"foreground_color\": "
           (json-encode (frame-parameter (selected-frame) 'foreground-color))
+          ",\"cursor_color\": "
+          (json-encode (frame-parameter (selected-frame) 'cursor-color))
           "}")))
     (phase-websocket-send connection output)))
 
