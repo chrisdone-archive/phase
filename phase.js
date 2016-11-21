@@ -18,7 +18,13 @@ $(function(){
   };
   conn.onmessage = function (e) {
     var reply = JSON.parse(e.data);
-    if (reply['type'] == 'point') {
+    // console.log(reply);
+    if (reply['type'] == 'frame-parameters') {
+      if (reply.background_color)
+        $(document.body).css('background-color',reply.background_color);
+      if (reply.foreground_color)
+        $(document.body).css('color',reply.foreground_color);
+    } else if (reply['type'] == 'point') {
       var buffer = document.getElementById('buffer');
       var xs = buffer.children;
       var line = reply.line;

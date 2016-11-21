@@ -162,6 +162,7 @@ connection, which should be kept in order to pass to
   (message "Phase: New client connected.")
   (add-to-list 'phase-clients connection)
   (phase-send-faces connection)
+  (phase-send-frame-parameters connection)
   (when (member 'phase-post-command-function post-command-hook)
     (phase-send-buffer-contents connection)))
 
@@ -285,11 +286,24 @@ and AFTER-END-LINE."
           "{"
           "\"type\": \"faces\", \"faces\": "
           (json-encode-array
-           (apply #'append ;; anywqay
+           (apply #'append
                   (mapcar (lambda (face)
                             (list face
                                   (face-foreground face nil 'default)))
                           (face-list))))
+          "}")))
+    (phase-websocket-send connection output)))
+
+(defun phase-send-frame-parameters (connection)
+  "On CONNECTION send a complete list of faces."
+  (let ((output
+         (concat
+          "{"
+          "\"type\": \"frame-parameters\""
+          ",\"background_color\": "
+          (json-encode (frame-parameter (selected-frame) 'background-color))
+          ",\"foreground_color\": "
+          (json-encode (frame-parameter (selected-frame) 'foreground-color))
           "}")))
     (phase-websocket-send connection output)))
 
