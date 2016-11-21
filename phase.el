@@ -1,4 +1,4 @@
-;;; phase.el --- Phase
+;;; phase.el --- Phase. Web-browser front-end to Emacs
 
 ;; Copyright (c) 2016 Chris Done. All rights reserved
 
@@ -18,6 +18,46 @@
 ;;; Commentary:
 
 ;; Acts as a server for web clients.
+;;
+;; What works:
+;;
+;; * Color themes.
+;; * Typing, cursor movement, undo, etc.
+;; * Fontification
+;; * Can M-x phase-enable-buffer in any buffer and it works
+;;
+;; TODO:
+;;
+;; * Overlays. These are needed for showing the current
+;;   selection. This is highest priority. For screencasts/webinars or
+;;   collaboration, you need to see the current selection. Other
+;;   features (like autocompletion drop-downs also use overlays,
+;;   etc.).
+;;
+;; * Let people type from the web browser. This requires a lot of
+;;   farting about with incompatible key mappings in the browser. But
+;;   some basics should be okay.
+;;
+;; * Support copy/paste with C-w/C-y/M-w etc. via clipboard APIs in
+;;   the browser.
+;;
+;; * Mouse support. Clicking (middle, regular, right) and possible
+;;   also point and drag. Might be tricky.
+;;
+;; * Implement a frame / make-frame provider (or otherwise piggy-back
+;;   on the default terminal behaviour).
+;;
+;; * Modeline: hook into the existing standard APIs for modelines.
+;;
+;; * Windows: support regular old Emacs window layouts, but
+;;   potentially later other things (such as layered windows, etc.)
+;;
+;; * Fonts: Emacs has a "particular" font-specification format, which
+;;   will probably need to be unpacked.
+;;
+;; * Support special text properties which will render their contents
+;;   verbatim as HTML, this will let us render an iframe in a buffer,
+;;   or any arbitrary HTML (think: documentation, charts, etc).
 
 ;;; Code:
 
@@ -71,6 +111,7 @@
     (add-hook 'before-change-functions 'phase-before-change-function nil t)
     (add-hook 'after-change-functions 'phase-after-change-function nil t)
     (add-hook 'jit-lock-functions 'phase-jit-lock-function t t)
+    (add-hook 'pre-redisplay-functions)
     (message "Phasing buffer %s." buffer)))
 
 (defun phase-disable-buffer (buffer)
@@ -163,8 +204,10 @@ connection, which should be kept in order to pass to
   (add-to-list 'phase-clients connection)
   (phase-send-faces connection)
   (phase-send-frame-parameters connection)
-  (when (member 'phase-post-command-function post-command-hook)
-    (phase-send-buffer-contents connection)))
+  (if (member 'phase-post-command-function post-command-hook)
+      (phase-send-buffer-contents connection)
+    (with-current-buffer "phase.el"
+      (phase-send-buffer-contents connection))))
 
 (defun phase-on-close (connection)
   "Callback when a CONNECTION is closed."
