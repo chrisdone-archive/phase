@@ -31,15 +31,24 @@ Phase.prototype.connect = function(){
   }
   conn.onopen = function () {
     self.log("Connected to websocket!");
-    self.log("Sending ping!");
-    self.send("Hello, World!");
   };
   conn.onerror = function (error) {
     self.log('WebSocket error: ', error);
   };
   conn.onmessage = function (msg) {
     self.log('WebSocket message: ', msg);
+    var event = JSON.parse(msg.data);
+    self.log('Message: ', event);
+    var handler = self[event.tag];
+    if (handler)
+      handler.call(self,event);
+    else
+      throw "No handler for: " + event.tag;
   }
+}
+
+Phase.prototype.setWindowConfiguration = function(event){
+  this.log("TODO: setWindowConfiguration: ", event.tree);
 }
 
 Phase.prototype.log = function(){

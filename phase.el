@@ -20,6 +20,7 @@
 ;;; Code:
 
 (require 'websocket)
+(require 'json)
 (require 'cl)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -66,7 +67,48 @@
 ;; Connection setup
 
 (defun phase-on-open (websocket)
-  (message "Client connection opened!"))
+  (message "Client connection opened!")
+  (phase-send-window-configuration websocket))
+
+(defun phase-send-window-configuration (websocket)
+  (websocket-send-text
+   websocket
+   (phase-json-object
+    (list
+     (phase-json-pair "tag" (phase-json-string "setWindowConfiguration"))
+     (phase-json-pair "tree" (phase-json-window-tree (car (window-tree))))))))
+
+(defun phase-json-window-tree (tree)
+  "Window TREE to json."
+  (if (windowp tree)
+      (phase-json-window tree)
+    (phase-json-split tree)))
+
+(defun phase-json-split (split)
+  "SPLIT to json."
+  (phase-json-object
+   (list
+    (phase-json-pair "vertical" (phase-json-bool (car split)))
+    (phase-json-pair "edges" (phase-json-array (mapcar 'phase-json-number (cadr split))))
+    (phase-json-pair "windows"
+                     (phase-json-array
+                      (mapcar 'phase-json-window-tree (cddr split)))))))
+
+(defun phase-json-window (window)
+  "WINDOW to json."
+  (phase-json-object
+   (list (phase-json-pair "key" (phase-json-string (phase-window-key window)))
+         (phase-json-pair "width" (phase-json-number (window-body-width window t)))
+         (phase-json-pair "height" (phase-json-number (window-body-height window t))))))
+
+(defun phase-window-key (window)
+  "Return a unique string name for WINDOW."
+  (if (windowp window)
+      (replace-regexp-in-string
+       "#<window \\([0-9]+\\).*"
+       "\\1"
+       (prin1-to-string window))
+    (error "Not a window: %S" window)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Connection teardown
@@ -85,6 +127,41 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Outgoing
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; JSON encoding
+
+(defun phase-json-array (pairs)
+  (concat "["
+          (with-temp-buffer
+            (cl-loop with len = (length pairs)
+                     for pair in pairs
+                     and i from 1
+                     do (insert pair (if (= i len) "" ",")))
+            (buffer-string))
+          "]"))
+
+(defun phase-json-object (pairs)
+  (concat "{"
+          (with-temp-buffer
+            (cl-loop with len = (length pairs)
+                     for pair in pairs
+                     and i from 1
+                     do (insert pair (if (= i len) "" ",")))
+            (buffer-string))
+          "}"))
+
+(defun phase-json-pair (key value)
+  (concat (json-encode-string key) ":" value))
+
+(defun phase-json-string (string)
+  (json-encode-string string))
+
+(defun phase-json-number (number)
+  (json-encode-number number))
+
+(defun phase-json-bool (bool)
+  (if bool "true" "false"))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
