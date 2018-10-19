@@ -98,10 +98,27 @@
 ;; Incoming
 
 (defun phase-on-message (ws frame)
-  (message "Server received frame: %S" frame)
-  (websocket-send-text
-   ws
-   (websocket-frame-text frame)))
+  (message "Server received frame! %S" frame)
+  (let* ((event (json-read-from-string (websocket-frame-text frame)))
+         (tag (cdr (assoc 'tag event))))
+    (cond ((string= tag "get-buffers")
+           (let ((names (cdr (assoc 'names event))))
+             (websocket-send-text
+              ws
+              (phase-json-object
+               (list
+                (phase-json-pair "tag" (phase-json-string "setBuffers"))
+                (phase-json-pair "buffers"
+                                 (phase-json-array
+                                  (mapcar (lambda (name)
+                                            (phase-json-object
+                                             (list (phase-json-pair "name" (phase-json-string name))
+                                                   (phase-json-pair
+                                                    "string"
+                                                    (phase-json-string
+                                                     (with-current-buffer (get-buffer name)
+                                                       (buffer-string)))))))
+                                          names)))))))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Outgoing
@@ -151,6 +168,7 @@
   "SPLIT to json."
   (phase-json-object
    (list
+    (phase-json-pair "tag" (phase-json-string "split"))
     (phase-json-pair "vertical" (phase-json-bool (car split)))
     (phase-json-pair "edges" (phase-json-array (mapcar 'phase-json-number (cadr split))))
     (phase-json-pair "windows"
@@ -160,9 +178,12 @@
 (defun phase-json-window (window)
   "WINDOW to json."
   (phase-json-object
-   (list (phase-json-pair "key" (phase-json-string (phase-window-key window)))
-         (phase-json-pair "width" (phase-json-number (window-body-width window t)))
-         (phase-json-pair "height" (phase-json-number (window-body-height window t))))))
+   (list
+    (phase-json-pair "tag" (phase-json-string "window"))
+    (phase-json-pair "key" (phase-json-string (phase-window-key window)))
+    (phase-json-pair "width" (phase-json-number (window-body-width window t)))
+    (phase-json-pair "buffer" (phase-json-string (buffer-name (window-buffer window))))
+    (phase-json-pair "height" (phase-json-number (window-body-height window t))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
