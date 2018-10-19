@@ -76,30 +76,8 @@
    (phase-json-object
     (list
      (phase-json-pair "tag" (phase-json-string "setWindowConfiguration"))
-     (phase-json-pair "tree" (phase-json-window-tree (car (window-tree))))))))
-
-(defun phase-json-window-tree (tree)
-  "Window TREE to json."
-  (if (windowp tree)
-      (phase-json-window tree)
-    (phase-json-split tree)))
-
-(defun phase-json-split (split)
-  "SPLIT to json."
-  (phase-json-object
-   (list
-    (phase-json-pair "vertical" (phase-json-bool (car split)))
-    (phase-json-pair "edges" (phase-json-array (mapcar 'phase-json-number (cadr split))))
-    (phase-json-pair "windows"
-                     (phase-json-array
-                      (mapcar 'phase-json-window-tree (cddr split)))))))
-
-(defun phase-json-window (window)
-  "WINDOW to json."
-  (phase-json-object
-   (list (phase-json-pair "key" (phase-json-string (phase-window-key window)))
-         (phase-json-pair "width" (phase-json-number (window-body-width window t)))
-         (phase-json-pair "height" (phase-json-number (window-body-height window t))))))
+     (phase-json-pair "tree" (phase-json-window-tree (car (window-tree))))
+     (phase-json-pair "minibuffer" (phase-json-window (cadr (window-tree))))))))
 
 (defun phase-window-key (window)
   "Return a unique string name for WINDOW."
@@ -162,6 +140,29 @@
 
 (defun phase-json-bool (bool)
   (if bool "true" "false"))
+
+(defun phase-json-window-tree (tree)
+  "Window TREE to json."
+  (if (windowp tree)
+      (phase-json-window tree)
+    (phase-json-split tree)))
+
+(defun phase-json-split (split)
+  "SPLIT to json."
+  (phase-json-object
+   (list
+    (phase-json-pair "vertical" (phase-json-bool (car split)))
+    (phase-json-pair "edges" (phase-json-array (mapcar 'phase-json-number (cadr split))))
+    (phase-json-pair "windows"
+                     (phase-json-array
+                      (mapcar 'phase-json-window-tree (cddr split)))))))
+
+(defun phase-json-window (window)
+  "WINDOW to json."
+  (phase-json-object
+   (list (phase-json-pair "key" (phase-json-string (phase-window-key window)))
+         (phase-json-pair "width" (phase-json-number (window-body-width window t)))
+         (phase-json-pair "height" (phase-json-number (window-body-height window t))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
