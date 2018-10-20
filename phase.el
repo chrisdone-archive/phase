@@ -91,6 +91,7 @@
     (list
      (phase-json-pair "tag" (phase-json-string "setWindowConfiguration"))
      (phase-json-pair "tree" (phase-json-window-tree (car (window-tree))))
+     (phase-json-pair "selected" (phase-json-string (phase-window-key (selected-window))))
      (phase-json-pair "minibuffer" (phase-json-window (cadr (window-tree))))))))
 
 (defun phase-window-key (window)
@@ -203,6 +204,7 @@
    (list
     (phase-json-pair "tag" (phase-json-string "window"))
     (phase-json-pair "key" (phase-json-string (phase-window-key window)))
+    (phase-json-pair "point" (phase-json-number (window-point window)))
     (phase-json-pair "width" (phase-json-number (window-body-width window t)))
     (phase-json-pair "buffer" (phase-json-string (buffer-name (window-buffer window))))
     (phase-json-pair "height" (phase-json-number (window-body-height window t))))))
