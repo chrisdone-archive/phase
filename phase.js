@@ -117,6 +117,34 @@ Phase.prototype.setBuffers = function(event){
   for (var i = 0; i < buffers.length; i++) {
     this.log("New buffer:",buffers[i].name);
     this.buffers[buffers[i].name] = buffers[i];
+    // Next:
+    //
+    // * setBuffers creates a Doc for each buffer.
+    // * Every window has a CodeMirror editor.
+    // * setWindowConfiguration calls linkDoc (on the Doc) + swapDoc
+    //   (on the CodeMirror) for every displayed buffer in each
+    //   window.
+    //
+    //
+    // > You can create new documents by calling the
+    // > CodeMirror.Doc(text: string, mode: Object, firstLineNumber:
+    // > ?number, lineSeparator: ?string) constructor. The last three
+    // > arguments are optional and can be used to set a mode for the
+    // > document, make it start at a line number other than 0, and set
+    // > a specific line separator respectively.
+    //
+    // And then:
+    //
+    // doc.linkedDoc(options: object) → Doc
+    //
+    // > Break the link between two documents. After calling this,
+    // > changes will no longer propagate between the documents, and, if
+    // > they had a shared history, the history will become separate.
+    //
+    // cm.swapDoc(doc: CodeMirror.Doc) → Doc
+    //
+    // > Attach a new document to the editor. Returns the old document,
+    // > which is now no longer associated with an editor.
   }
   this.applyWindowConfiguration();
 }
