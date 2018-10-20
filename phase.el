@@ -21,6 +21,7 @@
 
 (require 'websocket)
 (require 'json)
+(require 'subr-x)
 (require 'cl)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -33,11 +34,20 @@
   :type 'number)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Hooks
+
+(add-hook 'window-configuration-change-hook 'phase-window-configuration-change)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Globals
 
 (defvar phase-listener
   nil
   "A TCP listener process.")
+
+(defvar phase-clients
+  (make-hash-table :test 'equal)
+  "List of connected clients.")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Interactive functions
@@ -45,8 +55,7 @@
 (defun phase-listen ()
   "Start listening for connections on port `phase-port'."
   (interactive)
-  (if (and (processp phase-listener)
-           (process-live-p phase-listener))
+  (if (phase-listening-p)
       (message "Phase is already listening.")
     (progn (setq phase-listener (phase-make-listener))
            (message "Phase is listening ..."))))
@@ -63,11 +72,16 @@
    :on-open 'phase-on-open
    :on-close 'phase-on-close))
 
+(defun phase-listening-p ()
+  (and (processp phase-listener)
+       (process-live-p phase-listener)))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Connection setup
 
 (defun phase-on-open (websocket)
-  (message "Client connection opened!")
+  (message "Client connection opened: %S" websocket)
+  (puthash (websocket-accept-string websocket) websocket phase-clients)
   (phase-send-window-configuration websocket))
 
 (defun phase-send-window-configuration (websocket)
@@ -92,6 +106,7 @@
 ;; Connection teardown
 
 (defun phase-on-close (websocket)
+  (remhash (websocket-accept-string websocket) phase-clients)
   (message "Client connection closed."))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -122,6 +137,13 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Outgoing
+
+(defun phase-broadcast (func)
+  (mapc func (hash-table-values phase-clients)))
+
+(defun phase-window-configuration-change ()
+  (when (phase-listening-p)
+    (phase-broadcast 'phase-send-window-configuration)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; JSON encoding

@@ -13,6 +13,8 @@ function Phase(config){
   this.host = config.host;
   this.parent = config.parent;
   this.logs = [];
+  this.tree = [];
+  this.windows = Object.create(null);
   this.buffers = Object.create(null);
   this.lastlog = window.performance.now();
   this.container = $('<div class="phase-container"></div>');
@@ -52,16 +54,71 @@ Phase.prototype.connect = function(){
 Phase.prototype.setWindowConfiguration = function(event){
   var buffers = [];
   this.buffersFromTree(event.tree, buffers);
-  this.send(JSON.stringify({ tag: "get-buffers", names: buffers }));
+  this.tree = event.tree;
+  if (buffers.length > 0) {
+    this.send(JSON.stringify({ tag: "get-buffers", names: buffers }));
+  } else {
+    this.applyWindowConfiguration();
+  }
 }
 
+Phase.prototype.applyWindowConfiguration = function(){
+  var container = this.container;
+  var dim = {
+    width: container.width(),
+    height: container.height(),
+    left: 0,
+    top: 0
+  };
+  this.container.empty();
+  this.log("Container dimensions", dim);
+  this.applyTree(
+    this.tree,
+    dim);
+}
+
+Phase.prototype.applyTree = function(tree, dim){
+  var self = this;
+  if (tree.tag == "split") {
+    self.applySplit(tree, dim);
+  } else if (tree.tag == "window") {
+    this.setWindow(tree, dim);
+  }
+}
+
+Phase.prototype.setWindow = function(window, dim) {
+  this.log("Make window for", window, "dimensions", dim);
+  var buffer = this.buffers[window.buffer];
+  var window = $('<div class="phase-window"></div>');
+  window.css(dim).css('font-family','monospace').css('white-space','pre');
+  window.text(buffer.string);
+  this.container.append(window);
+}
+
+Phase.prototype.applySplit = function(split, dim){
+  var width = split.vertical? dim.width : dim.width / split.windows.length;
+  var height = split.vertical? dim.height / split.windows.length : dim.height;
+  var left = dim.left;
+  var top = dim.top;
+  for (var i = 0, len = split.windows.length; i < len; i++) {
+    this.applyTree(split.windows[i],{
+      width: width,
+      height: height,
+      left: left,
+      top: top
+    });
+    if (split.vertical) top = top + height;
+    else left = left + width;
+  }
+};
+
 Phase.prototype.setBuffers = function(event){
-  this.log("TODO: setBuffers: ", event.buffers);
   var buffers = event.buffers;
   for (var i = 0; i < buffers.length; i++) {
+    this.log("New buffer:",buffers[i].name);
     this.buffers[buffers[i].name] = buffers[i];
   }
-  this.log("Buffers:", this.buffers);
+  this.applyWindowConfiguration();
 }
 
 Phase.prototype.buffersFromTree = function(tree, out){
@@ -69,7 +126,9 @@ Phase.prototype.buffersFromTree = function(tree, out){
   if (tree.tag == "split") {
     self.buffersFromSplit(tree, out);
   } else if (tree.tag == "window") {
-    out.push(tree.buffer);
+    if (!self.buffers[tree.buffer]) {
+      out.push(tree.buffer);
+    }
   }
 }
 
