@@ -188,7 +188,7 @@
 
 (defun phase-json-window-points (window)
   (phase-json-object
-   (with-current-buffer (window-buffer)
+   (with-current-buffer (window-buffer window)
      (list (phase-json-pair
             "line"
             (phase-json-number
