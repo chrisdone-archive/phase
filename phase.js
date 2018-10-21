@@ -132,7 +132,7 @@ Phase.prototype.setWindow = function(window, dim) {
     this.container.append(windowdom);
 
     // Create CodeMirror instance
-    var cm = CodeMirror(windowdom[0]);
+    var cm = CodeMirror(windowdom[0], { readOnly: true });
     var linkedDoc = buffer.doc.linkedDoc();
     cm.swapDoc(linkedDoc);
     cm.setSelection(window.point, window.point);
