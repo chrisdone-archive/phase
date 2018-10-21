@@ -50,6 +50,16 @@ Phase.prototype.connect = function(){
       throw "No handler for: " + event.tag;
   }
 }
+// what's going on in this thread? hell
+Phase.prototype.replaceRange = function(event){
+  if (this.buffers[event.buffer]) {
+    var doc = this.buffers[event.buffer].doc;
+    var pos1 = doc.posFromIndex(event.from-1);
+    var pos2 = doc.posFromIndex(event.to-1);
+    doc.replaceRange(event.replacement,pos1,pos2);
+    this.log("replaceRange:",pos1,pos2);
+  }
+}
 
 Phase.prototype.setWindowPoints = function(event){
   for (var key in this.windows) {

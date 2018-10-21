@@ -37,15 +37,25 @@
 ;; Hooks
 
 (add-hook 'window-configuration-change-hook 'phase-window-configuration-change)
-(add-hook 'post-command-hook 'phase-window-post-command)
+(add-hook 'post-command-hook 'phase-post-command)
+(add-hook 'after-change-functions 'phase-after-change)
 
 (defun phase-window-configuration-change ()
   (when (phase-listening-p)
     (phase-broadcast 'phase-send-window-configuration)))
 
-(defun phase-window-post-command ()
+(defun phase-post-command ()
   (when (phase-listening-p)
     (phase-broadcast 'phase-send-post-command-updates)))
+
+(defun phase-after-change (beg end old-length)
+  (when (buffer-live-p (current-buffer))
+    (when (phase-listening-p)
+      (let ((dyn-replacement (buffer-substring-no-properties beg end))
+            (dyn-range-beg beg)
+            (dyn-range-end (+ beg old-length)))
+        ;; yay, it works!
+        (phase-broadcast 'phase-send-change)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Globals
@@ -164,6 +174,17 @@
                  (phase-json-pair (phase-window-key window)
                                   (phase-json-window-points window)))
                (window-list))))))))
+
+(defun phase-send-change (websocket)
+  (websocket-send-text
+   websocket
+   (phase-json-object
+    (list
+     (phase-json-pair "tag" (phase-json-string "replaceRange"))
+     (phase-json-pair "buffer" (phase-json-string (buffer-name)))
+     (phase-json-pair "replacement" (phase-json-string dyn-replacement))
+     (phase-json-pair "from" (phase-json-number dyn-range-beg))
+     (phase-json-pair "to" (phase-json-number dyn-range-end))))))
 
 (defun phase-json-window-points (window)
   (phase-json-object
