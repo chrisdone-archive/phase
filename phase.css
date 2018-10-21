@@ -12,3 +12,8 @@
   position: absolute;
   overflow: hidden;
 }
+
+.phase-window > .CodeMirror {
+  width: 100%;
+  height: 100%;
+}

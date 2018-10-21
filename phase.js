@@ -62,34 +62,6 @@ Phase.prototype.setWindowConfiguration = function(event){
   }
 }
 
-// Next:
-//
-// * Every window has a CodeMirror editor.
-// * setWindowConfiguration calls linkDoc (on the Doc) + swapDoc
-//   (on the CodeMirror) for every displayed buffer in each
-//   window.
-//
-//
-// > You can create new documents by calling the
-// > CodeMirror.Doc(text: string, mode: Object, firstLineNumber:
-// > ?number, lineSeparator: ?string) constructor. The last three
-// > arguments are optional and can be used to set a mode for the
-// > document, make it start at a line number other than 0, and set
-// > a specific line separator respectively.
-//
-// And then:
-//
-// doc.linkedDoc(options: object) → Doc
-//
-// > Break the link between two documents. After calling this,
-// > changes will no longer propagate between the documents, and, if
-// > they had a shared history, the history will become separate.
-//
-// cm.swapDoc(doc: CodeMirror.Doc) → Doc
-//
-// > Attach a new document to the editor. Returns the old document,
-// > which is now no longer associated with an editor.
-
 Phase.prototype.applyWindowConfiguration = function(){
   var container = this.container;
   var dim = {
@@ -108,6 +80,7 @@ Phase.prototype.applyWindowConfiguration = function(){
   for (var key in this.windows) {
     if (!usedWindows[key]) {
       this.log("GC window", key);
+      this.windows[key].doc.unlinkDoc(this.windows[key].linkedDoc);
       this.windows[key].dom.remove();
       delete this.windows[key];
     }
@@ -129,17 +102,36 @@ Phase.prototype.setWindow = function(window, dim) {
   if (this.windows[window.key]) {
     this.log("Window",window.key,"already present.");
     this.windows[window.key].dom.css(dim);
+    var oldbuffer = this.windows[window.key].buffer;
+    this.windows[window.key].buffer = window.buffer;
+    if (oldbuffer == window.buffer) {
+      this.log("No buffer change.");
+    } else {
+      this.log("Buffer changed in this window", window.key,"to",window.buffer);
+      var buffer = this.buffers[window.buffer];
+      var linkedDoc = buffer.doc.linkedDoc();
+      var oldLinkedDoc = this.windows[window.key].cm.swapDoc(linkedDoc);
+      this.windows[window.key].doc.unlinkDoc(oldLinkedDoc);
+    }
   } else {
     this.windows[window.key] = window;
     this.log("New window",window);
+
+    // Create DOM container
     var buffer = this.buffers[window.buffer];
     var windowdom = $('<div class="phase-window"></div>');
     windowdom.css(dim).css('font-family','monospace').css('white-space','pre');
-    windowdom.text(buffer.string);
-
-    this.windows[window.key].dom = windowdom;
-
     this.container.append(windowdom);
+
+    // Create CodeMirror instance
+    var cm = CodeMirror(windowdom[0]);
+    var linkedDoc = buffer.doc.linkedDoc();
+    cm.swapDoc(linkedDoc);
+
+    this.windows[window.key].cm = cm;
+    this.windows[window.key].linkedDoc = linkedDoc;
+    this.windows[window.key].doc = buffer.doc;
+    this.windows[window.key].dom = windowdom;
   }
 }
 
@@ -163,12 +155,9 @@ Phase.prototype.applySplit = function(split, dim, out){
 Phase.prototype.setBuffers = function(event){
   var buffers = event.buffers;
   for (var i = 0; i < buffers.length; i++) {
-    this.log("New buffer:",buffers[i].name);
     var buffer = buffers[i];
     this.buffers[buffers[i].name] = buffer;
-    buffer.doc = CodeMirror.Doc({
-      text: buffer.string
-    });
+    buffer.doc = CodeMirror.Doc(buffers[i].string);
   }
   this.applyWindowConfiguration();
 }
