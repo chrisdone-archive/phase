@@ -123,13 +123,14 @@ Phase.prototype.setWindow = function(window, dim) {
     this.windows[window.key].buffer = window.buffer;
     if (oldbuffer == window.buffer) {
       this.log("No buffer change.");
+      this.windows[window.key].cm.refresh();
     } else {
       this.log("Buffer changed in this window", window.key,"to",window.buffer);
       var buffer = this.buffers[window.buffer];
       var linkedDoc = buffer.doc.linkedDoc();
       var oldLinkedDoc = this.windows[window.key].cm.swapDoc(linkedDoc);
       this.windows[window.key].doc.unlinkDoc(oldLinkedDoc);
-      this.windows[key].cm.setSelection(window.point, window.point);
+      this.windows[window.key].cm.setSelection(window.point, window.point);
     }
   } else {
     this.windows[window.key] = window;
