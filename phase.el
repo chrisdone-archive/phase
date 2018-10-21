@@ -37,6 +37,15 @@
 ;; Hooks
 
 (add-hook 'window-configuration-change-hook 'phase-window-configuration-change)
+(add-hook 'post-command-hook 'phase-window-post-command)
+
+(defun phase-window-configuration-change ()
+  (when (phase-listening-p)
+    (phase-broadcast 'phase-send-window-configuration)))
+
+(defun phase-window-post-command ()
+  (when (phase-listening-p)
+    (phase-broadcast 'phase-send-post-command-updates)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Globals
@@ -83,16 +92,6 @@
   (message "Client connection opened: %S" websocket)
   (puthash (websocket-accept-string websocket) websocket phase-clients)
   (phase-send-window-configuration websocket))
-
-(defun phase-send-window-configuration (websocket)
-  (websocket-send-text
-   websocket
-   (phase-json-object
-    (list
-     (phase-json-pair "tag" (phase-json-string "setWindowConfiguration"))
-     (phase-json-pair "tree" (phase-json-window-tree (car (window-tree))))
-     (phase-json-pair "selected" (phase-json-string (phase-window-key (selected-window))))
-     (phase-json-pair "minibuffer" (phase-json-window (cadr (window-tree))))))))
 
 (defun phase-window-key (window)
   "Return a unique string name for WINDOW."
@@ -142,9 +141,45 @@
 (defun phase-broadcast (func)
   (mapc func (hash-table-values phase-clients)))
 
-(defun phase-window-configuration-change ()
-  (when (phase-listening-p)
-    (phase-broadcast 'phase-send-window-configuration)))
+(defun phase-send-window-configuration (websocket)
+  (websocket-send-text
+   websocket
+   (phase-json-object
+    (list
+     (phase-json-pair "tag" (phase-json-string "setWindowConfiguration"))
+     (phase-json-pair "tree" (phase-json-window-tree (car (window-tree))))
+     (phase-json-pair "selected" (phase-json-string (phase-window-key (selected-window))))
+     (phase-json-pair "minibuffer" (phase-json-window (cadr (window-tree))))))))
+
+(defun phase-send-post-command-updates (websocket)
+  (websocket-send-text
+   websocket
+   (phase-json-object
+    (list
+     (phase-json-pair "tag" (phase-json-string "setWindowPoints"))
+     (phase-json-pair
+      "windows"
+      (phase-json-object
+       (mapcar (lambda (window)
+                 (phase-json-pair (phase-window-key window)
+                                  (phase-json-window-points window)))
+               (window-list))))))))
+
+(defun phase-json-window-points (window)
+  (phase-json-object
+   (with-current-buffer (window-buffer)
+     (list (phase-json-pair
+            "line"
+            (phase-json-number
+             (- (line-number-at-pos (window-point window))
+                1)))
+           (phase-json-pair
+            "ch"
+            (phase-json-number
+             (with-current-buffer (window-buffer window)
+               (save-excursion
+                 (goto-char (window-point window))
+                 (current-column)))))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; JSON encoding
@@ -204,7 +239,7 @@
    (list
     (phase-json-pair "tag" (phase-json-string "window"))
     (phase-json-pair "key" (phase-json-string (phase-window-key window)))
-    (phase-json-pair "point" (phase-json-number (window-point window)))
+    (phase-json-pair "point" (phase-json-window-points window))
     (phase-json-pair "width" (phase-json-number (window-body-width window t)))
     (phase-json-pair "buffer" (phase-json-string (buffer-name (window-buffer window))))
     (phase-json-pair "height" (phase-json-number (window-body-height window t))))))

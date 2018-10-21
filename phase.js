@@ -51,6 +51,13 @@ Phase.prototype.connect = function(){
   }
 }
 
+Phase.prototype.setWindowPoints = function(event){
+  for (var key in this.windows) {
+    var sel = event.windows[key];
+    this.windows[key].cm.setSelection(sel, sel);
+  }
+}
+
 Phase.prototype.setWindowConfiguration = function(event){
   var buffers = [];
   this.buffersFromTree(event.tree, buffers);
@@ -112,6 +119,7 @@ Phase.prototype.setWindow = function(window, dim) {
       var linkedDoc = buffer.doc.linkedDoc();
       var oldLinkedDoc = this.windows[window.key].cm.swapDoc(linkedDoc);
       this.windows[window.key].doc.unlinkDoc(oldLinkedDoc);
+      this.windows[key].cm.setSelection(window.point, window.point);
     }
   } else {
     this.windows[window.key] = window;
@@ -127,6 +135,7 @@ Phase.prototype.setWindow = function(window, dim) {
     var cm = CodeMirror(windowdom[0]);
     var linkedDoc = buffer.doc.linkedDoc();
     cm.swapDoc(linkedDoc);
+    cm.setSelection(window.point, window.point);
 
     this.windows[window.key].cm = cm;
     this.windows[window.key].linkedDoc = linkedDoc;
