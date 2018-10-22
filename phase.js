@@ -184,6 +184,15 @@ Phase.prototype.setBuffers = function(event){
     var buffer = buffers[i];
     this.buffers[buffers[i].name] = buffer;
     buffer.doc = CodeMirror.Doc(buffers[i].string);
+    var doc = buffer.doc, props = buffer.properties;
+    for (var p = 0, len = props.length; p < len; p+=3){
+      if (props[p+2]) {
+        var start = doc.posFromIndex(props[p]);
+        var end = doc.posFromIndex(props[p+1]);
+        this.log("Property: ", start, end, props[p+2]);
+        doc.markText(start, end, { className: 'face-' + props[p+2], shared: true  });
+      }
+    }
   }
   this.applyWindowConfiguration();
 }

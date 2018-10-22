@@ -33,3 +33,24 @@ div.CodeMirror .CodeMirror-cursor {
   border: 0;
   background: rgba(0, 0, 0, .4);
 }
+
+/* Emacs faces */
+.face-css-selector {
+  color: blue;
+}
+
+.face-css-property {
+  color: orange;
+}
+
+.face-font-lock-keyword-face {
+  color: orange;
+}
+
+.face-font-lock-function-name-face {
+  color: green;
+}
+
+.face-font-lock-comment-face {
+  color: grey;
+}

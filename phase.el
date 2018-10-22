@@ -62,7 +62,7 @@
   (when (and (buffer-live-p (current-buffer))
              (phase-buffer-visible-p (current-buffer)))
     (when (phase-listening-p)
-      (let ((dyn-replacement (buffer-substring-no-properties beg end))
+      (let ((dyn-replacement (buffer-substring beg end))
             (dyn-range-beg beg)
             (dyn-range-end (+ beg old-length)))
         (phase-broadcast 'phase-send-change)))))
@@ -75,8 +75,8 @@
 
 (defun phase-buffer-visible-p (buffer)
   (let ((name (buffer-name buffer)))
-   (and (> 0 (length name))
-        (not (string= " " (substring name 0 1))))))
+    (and (> (length name) 0)
+         (not (string= " " (substring name 0 1))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Globals
@@ -211,6 +211,8 @@
      (phase-json-pair "tag" (phase-json-string "replaceRange"))
      (phase-json-pair "buffer" (phase-json-string (buffer-name)))
      (phase-json-pair "replacement" (phase-json-string dyn-replacement))
+     (phase-json-pair "properties"
+                      (json-encode (phase-string-properties dyn-replacement)))
      (phase-json-pair "from" (phase-json-number dyn-range-beg))
      (phase-json-pair "to" (phase-json-number dyn-range-end))))))
 
@@ -298,7 +300,19 @@
 
 (defun phase-string-properties (string)
   "Return properties of string as a list."
-  (cdr (read (substring (with-output-to-string (prin1 string)) 1))))
+  (let (print-level
+        print-length
+        (str (with-output-to-string (prin1 string))))
+    (when (string= "#" (substring str 0 1))
+        (mapcar
+         (lambda (e)
+           (if (numberp e)
+               e
+             (plist-get e 'face)))
+         (cdr (condition-case nil
+                  (read (substring
+                         str 1))
+                (error nil)))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
