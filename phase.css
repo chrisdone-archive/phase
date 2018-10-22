@@ -1,3 +1,4 @@
+/* Main container */
 .phase-container {
   width: 100%;
   height: 800px;
@@ -6,12 +7,15 @@
   position: relative;
 }
 
+/* Frame windows */
 .phase-window {
   border: 1px solid #555;
   background: #eeffff;
   position: absolute;
   overflow: hidden;
 }
+
+/* CodeMirror-specific styles */
 
 .phase-window > .CodeMirror {
   width: 100%;
@@ -22,6 +26,8 @@ div.CodeMirror-cursors {
   visibility: visible;
 }
 
+/* Later this can actually be configured by Emacs, so it can be sent
+   by the server too. */
 div.CodeMirror .CodeMirror-cursor {
   width: auto;
   border: 0;
