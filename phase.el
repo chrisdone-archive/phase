@@ -39,6 +39,7 @@
 (add-hook 'window-configuration-change-hook 'phase-window-configuration-change)
 (add-hook 'post-command-hook 'phase-post-command)
 (add-hook 'after-change-functions 'phase-after-change)
+(add-hook 'kill-buffer-hook 'phase-kill-buffer)
 
 ;; TODO:
 ;;
@@ -64,6 +65,11 @@
             (dyn-range-end (+ beg old-length)))
         ;; yay, it works!
         (phase-broadcast 'phase-send-change)))))
+
+(defun phase-kill-buffer ()
+  (let (kill-buffer-hook)
+    (when (phase-listening-p)
+      (phase-broadcast 'phase-send-buffer-killed))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Globals
@@ -155,6 +161,14 @@
 
 (defun phase-broadcast (func)
   (mapc func (hash-table-values phase-clients)))
+
+(defun phase-send-buffer-killed (websocket)
+  (websocket-send-text
+   websocket
+   (phase-json-object
+    (list
+     (phase-json-pair "tag" (phase-json-string "killBuffer"))
+     (phase-json-pair "buffer" (phase-json-string (buffer-name)))))))
 
 (defun phase-send-window-configuration (websocket)
   (websocket-send-text

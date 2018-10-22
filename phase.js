@@ -61,6 +61,12 @@ Phase.prototype.replaceRange = function(event){
   }
 }
 
+Phase.prototype.killBuffer = function(event){
+  if (this.buffers[event.buffer]) {
+    delete this.buffers[event.buffer];
+  }
+}
+
 Phase.prototype.setWindowPoints = function(event){
   for (var key in this.windows) {
     var sel = event.windows[key];
