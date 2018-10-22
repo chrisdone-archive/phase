@@ -63,7 +63,6 @@
       (let ((dyn-replacement (buffer-substring-no-properties beg end))
             (dyn-range-beg beg)
             (dyn-range-end (+ beg old-length)))
-        ;; yay, it works!
         (phase-broadcast 'phase-send-change)))))
 
 (defun phase-kill-buffer ()
