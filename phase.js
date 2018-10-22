@@ -1,8 +1,8 @@
 $(document).ready(function(){
   console.log("Document ready. Starting phase ...");
   var phase = new Phase({
-    port: 4006,
-    host: "127.0.0.1",
+    port: 80,
+    host: window.location.hostname,
     parent: $('body')[0]
   });
 });
@@ -27,7 +27,7 @@ function Phase(config){
 Phase.prototype.connect = function(){
   var self = this;
   var loc = window.location;
-  var new_uri = "ws://" + this.host + ":" + this.port;
+  var new_uri = "ws://" + this.host + ":" + this.port + "/ws";
   var conn = this.conn = new WebSocket(new_uri);
   this.send = function(x){
     this.log("Send:",x);
