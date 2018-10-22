@@ -50,7 +50,7 @@ Phase.prototype.connect = function(){
       throw "No handler for: " + event.tag;
   }
 }
-// what's going on in this thread? hell
+
 Phase.prototype.replaceRange = function(event){
   if (this.buffers[event.buffer]) {
     var doc = this.buffers[event.buffer].doc;
@@ -70,7 +70,8 @@ Phase.prototype.killBuffer = function(event){
 Phase.prototype.setWindowPoints = function(event){
   for (var key in this.windows) {
     var sel = event.windows[key];
-    this.windows[key].cm.setSelection(sel, sel);
+    var win = this.windows[key];
+    win.cm.setSelection(sel, sel);
   }
 }
 
@@ -189,7 +190,7 @@ Phase.prototype.setBuffers = function(event){
       if (props[p+2]) {
         var start = doc.posFromIndex(props[p]);
         var end = doc.posFromIndex(props[p+1]);
-        this.log("Property: ", start, end, props[p+2]);
+        //this.log("Property: ", start, end, props[p+2]);
         doc.markText(start, end, { className: 'face-' + props[p+2], shared: true  });
       }
     }

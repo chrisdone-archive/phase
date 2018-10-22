@@ -220,6 +220,10 @@
   (phase-json-object
    (with-current-buffer (window-buffer window)
      (list (phase-json-pair
+            "start"
+            (phase-json-number
+             (window-start window)))
+           (phase-json-pair
             "line"
             (phase-json-number
              (- (line-number-at-pos (window-point window))
@@ -291,6 +295,7 @@
     (phase-json-pair "tag" (phase-json-string "window"))
     (phase-json-pair "key" (phase-json-string (phase-window-key window)))
     (phase-json-pair "point" (phase-json-window-points window))
+    (phase-json-pair "start" (phase-json-number (window-start window)))
     (phase-json-pair "width" (phase-json-number (window-body-width window t)))
     (phase-json-pair "buffer" (phase-json-string (buffer-name (window-buffer window))))
     (phase-json-pair "height" (phase-json-number (window-body-height window t))))))
