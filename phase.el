@@ -36,10 +36,11 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Hooks
 
-(add-hook 'window-configuration-change-hook 'phase-window-configuration-change)
-(add-hook 'post-command-hook 'phase-post-command)
-(add-hook 'after-change-functions 'phase-after-change)
-(add-hook 'kill-buffer-hook 'phase-kill-buffer)
+(progn
+  (add-hook 'window-configuration-change-hook 'phase-window-configuration-change)
+  (add-hook 'post-command-hook 'phase-post-command)
+  (add-hook 'after-change-functions 'phase-after-change)
+  (add-hook 'kill-buffer-hook 'phase-kill-buffer))
 
 ;; TODO:
 ;;
@@ -58,7 +59,8 @@
     (phase-broadcast 'phase-send-post-command-updates)))
 
 (defun phase-after-change (beg end old-length)
-  (when (buffer-live-p (current-buffer))
+  (when (and (buffer-live-p (current-buffer))
+             (phase-buffer-visible-p (current-buffer)))
     (when (phase-listening-p)
       (let ((dyn-replacement (buffer-substring-no-properties beg end))
             (dyn-range-beg beg)
@@ -66,9 +68,15 @@
         (phase-broadcast 'phase-send-change)))))
 
 (defun phase-kill-buffer ()
-  (let (kill-buffer-hook)
-    (when (phase-listening-p)
-      (phase-broadcast 'phase-send-buffer-killed))))
+  (when (phase-buffer-visible-p (current-buffer))
+    (let (kill-buffer-hook)
+      (when (phase-listening-p)
+        (phase-broadcast 'phase-send-buffer-killed)))))
+
+(defun phase-buffer-visible-p (buffer)
+  (let ((name (buffer-name buffer)))
+   (and (> 0 (length name))
+        (not (string= " " (substring name 0 1))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Globals
@@ -136,24 +144,26 @@
 (defun phase-on-message (ws frame)
   (let* ((event (json-read-from-string (websocket-frame-text frame)))
          (tag (cdr (assoc 'tag event))))
-    (cond ((string= tag "get-buffers")
-           (let ((names (cdr (assoc 'names event))))
-             (websocket-send-text
-              ws
-              (phase-json-object
-               (list
-                (phase-json-pair "tag" (phase-json-string "setBuffers"))
-                (phase-json-pair "buffers"
-                                 (phase-json-array
-                                  (mapcar (lambda (name)
-                                            (phase-json-object
-                                             (list (phase-json-pair "name" (phase-json-string name))
-                                                   (phase-json-pair
-                                                    "string"
-                                                    (phase-json-string
-                                                     (with-current-buffer (get-buffer name)
-                                                       (buffer-string)))))))
-                                          names)))))))))))
+    (cond
+     ((string= tag "get-buffers")
+      (let ((names (cdr (assoc 'names event))))
+        (websocket-send-text
+         ws
+         (phase-json-object
+          (list
+           (phase-json-pair "tag" (phase-json-string "setBuffers"))
+           (phase-json-pair "buffers"
+                            (phase-json-array
+                             (mapcar (lambda (name)
+                                       (phase-json-object
+                                        (let ((string
+                                               (with-current-buffer (get-buffer name)
+                                                 (buffer-string))))
+                                          (list (phase-json-pair "name" (phase-json-string name))
+                                                (phase-json-pair "string" (phase-json-string string))
+                                                (phase-json-pair "properties"
+                                                                 (json-encode (phase-string-properties string)))))))
+                                     names)))))))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Outgoing
@@ -282,6 +292,13 @@
     (phase-json-pair "width" (phase-json-number (window-body-width window t)))
     (phase-json-pair "buffer" (phase-json-string (buffer-name (window-buffer window))))
     (phase-json-pair "height" (phase-json-number (window-body-height window t))))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Text properties & faces
+
+(defun phase-string-properties (string)
+  "Return properties of string as a list."
+  (cdr (read (substring (with-output-to-string (prin1 string)) 1))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
