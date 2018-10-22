@@ -40,6 +40,14 @@
 (add-hook 'post-command-hook 'phase-post-command)
 (add-hook 'after-change-functions 'phase-after-change)
 
+;; TODO:
+;;
+;; — Variable: pre-redisplay-functions
+;;
+;; This hook is run just before redisplay. It is called once in each
+;; window that is about to be redisplayed, with current-buffer set to
+;; the buffer displayed in that window.
+
 (defun phase-window-configuration-change ()
   (when (phase-listening-p)
     (phase-broadcast 'phase-send-window-configuration)))
