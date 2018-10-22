@@ -1,15 +1,21 @@
+body {
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
 /* Main container */
 .phase-container {
-  width: 100%;
-  height: 800px;
-  border: 1px solid #ccc;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   background: #eee;
-  position: relative;
 }
 
 /* Frame windows */
 .phase-window {
-  border: 1px solid #555;
   background: #eeffff;
   position: absolute;
   overflow: hidden;
