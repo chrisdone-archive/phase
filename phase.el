@@ -99,7 +99,6 @@
 ;; Connection setup
 
 (defun phase-on-open (websocket)
-  (message "Client connection opened: %S" websocket)
   (puthash (websocket-accept-string websocket) websocket phase-clients)
   (phase-send-window-configuration websocket))
 
@@ -116,14 +115,12 @@
 ;; Connection teardown
 
 (defun phase-on-close (websocket)
-  (remhash (websocket-accept-string websocket) phase-clients)
-  (message "Client connection closed."))
+  (remhash (websocket-accept-string websocket) phase-clients))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Incoming
 
 (defun phase-on-message (ws frame)
-  (message "Server received frame! %S" frame)
   (let* ((event (json-read-from-string (websocket-frame-text frame)))
          (tag (cdr (assoc 'tag event))))
     (cond ((string= tag "get-buffers")
