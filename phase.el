@@ -285,8 +285,6 @@
      (phase-json-pair "replacement" (phase-json-string replacement))
      (phase-json-pair "properties"
                       (json-encode (phase-string-properties replacement)))
-     (phase-json-pair "properties"
-                      (json-encode (phase-string-properties replacement)))
      (phase-json-pair "from" (phase-json-number beg))
      (phase-json-pair "to" (phase-json-number end))))))
 
@@ -378,21 +376,18 @@
 ;; Text properties & faces
 
 (defun phase-string-properties (string)
-  "Return properties of string as a list."
-  (let (print-level
-        print-length
-        (str (with-output-to-string (prin1 string))))
-    (when (string= "#" (substring str 0 1))
-      (mapcar
-       (lambda (e)
-         (if (numberp e)
-             e
-           (or (plist-get e 'face)
-               (plist-get e 'font-lock-face))))
-       (cdr (condition-case nil
-                (read (substring
-                       str 1))
-              (error nil)))))))
+  "Return properties of STRING as a list."
+  (cl-loop
+   with point = 0
+   with point-max = (length string)
+   while (not (>= point point-max))
+   for next-change = (or (next-property-change point string)
+                         point-max)
+   for face = (get-text-property point 'face string)
+   collect point
+   collect next-change
+   collect face
+   do (setq point next-change)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
