@@ -387,7 +387,8 @@
        (lambda (e)
          (if (numberp e)
              e
-           (plist-get e 'face)))
+           (or (plist-get e 'face)
+               (plist-get e 'font-lock-face))))
        (cdr (condition-case nil
                 (read (substring
                        str 1))

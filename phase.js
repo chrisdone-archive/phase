@@ -247,7 +247,7 @@ Phase.prototype.setFaces = function(event){
 
 Phase.prototype.setCursorColor = function(event){
   this.cursorColor = event.color;
-  this.setFaces();
+  this.setFaces({faces: []});
 }
 
 Phase.prototype.buffersFromTree = function(tree, out){
