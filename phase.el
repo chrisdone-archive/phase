@@ -44,6 +44,13 @@
 
 ;; TODO:
 ;;
+;; Use the below redisplay hook to queue events up before an
+;; (inevitable) redisplay. For example, every time a change occurs on
+;; a visible buffer, you could queue that up because there will
+;; inevitably be a redisplay at the end, but you can double buffer and
+;; avoid seeing the drawing in action and just send the finished
+;; result in one go.
+;;
 ;; — Variable: pre-redisplay-functions
 ;;
 ;; This hook is run just before redisplay. It is called once in each
@@ -276,6 +283,8 @@
      (phase-json-pair "tag" (phase-json-string "replaceRange"))
      (phase-json-pair "buffer" (phase-json-string (buffer-name)))
      (phase-json-pair "replacement" (phase-json-string replacement))
+     (phase-json-pair "properties"
+                      (json-encode (phase-string-properties replacement)))
      (phase-json-pair "properties"
                       (json-encode (phase-string-properties replacement)))
      (phase-json-pair "from" (phase-json-number beg))
