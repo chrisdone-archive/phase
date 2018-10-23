@@ -163,7 +163,40 @@
                                                 (phase-json-pair "string" (phase-json-string string))
                                                 (phase-json-pair "properties"
                                                                  (json-encode (phase-string-properties string)))))))
-                                     names)))))))))))
+                                     names))))))))
+     ((string= tag "get-faces")
+      (let ((names (cdr (assoc 'names event))))
+        (websocket-send-text
+         ws
+         (phase-json-object
+          (list
+           (phase-json-pair "tag" (phase-json-string "setFaces"))
+           (phase-json-pair
+            "faces"
+            (phase-json-object
+             (mapcar
+              (lambda (name)
+                (phase-json-pair
+                 name
+                 (phase-json-object
+                  (list (phase-json-pair
+                         "font-family"
+                         (phase-json-string
+                          (plist-get (font-face-attributes (face-attribute (intern name) :font nil 'default))
+                                     :family)))
+                        (phase-json-pair
+                         "font-size"
+                         (phase-json-string
+                          (concat (number-to-string
+                                   (/ (face-attribute (intern name) :height nil 'default) 10))
+                                  "pt")))
+                        (phase-json-pair
+                         "color"
+                         (phase-json-string (face-attribute (intern name) :foreground nil 'default)))
+                        (phase-json-pair
+                         "background-color"
+                         (phase-json-string (face-attribute (intern name) :background nil 'default)))))))
+              names)))))))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Outgoing
@@ -309,15 +342,15 @@
         print-length
         (str (with-output-to-string (prin1 string))))
     (when (string= "#" (substring str 0 1))
-        (mapcar
-         (lambda (e)
-           (if (numberp e)
-               e
-             (plist-get e 'face)))
-         (cdr (condition-case nil
-                  (read (substring
-                         str 1))
-                (error nil)))))))
+      (mapcar
+       (lambda (e)
+         (if (numberp e)
+             e
+           (plist-get e 'face)))
+       (cdr (condition-case nil
+                (read (substring
+                       str 1))
+              (error nil)))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 

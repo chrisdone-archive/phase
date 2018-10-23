@@ -16,11 +16,14 @@ function Phase(config){
   this.tree = [];
   this.windows = Object.create(null);
   this.buffers = Object.create(null);
+  this.faces = Object.create(null);
   this.lastlog = window.performance.now();
   this.container = $('<div class="phase-container"></div>');
+  this.styledom = $('<style></style>');
 
   // Init
   $(this.parent).append(this.container);
+  this.container.append(this.styledom);
   this.connect();
 }
 
@@ -35,6 +38,7 @@ Phase.prototype.connect = function(){
   }
   conn.onopen = function () {
     self.log("Connected to websocket!");
+    this.send(JSON.stringify({ tag: "get-faces", names: ["default"] }));
   };
   conn.onerror = function (error) {
     self.log('WebSocket error: ', error);
@@ -181,21 +185,62 @@ Phase.prototype.applySplit = function(split, dim, out){
 
 Phase.prototype.setBuffers = function(event){
   var buffers = event.buffers;
+  var missing = Object.create(null);
+  var faces = [];
   for (var i = 0; i < buffers.length; i++) {
     var buffer = buffers[i];
     this.buffers[buffers[i].name] = buffer;
     buffer.doc = CodeMirror.Doc(buffers[i].string);
     var doc = buffer.doc, props = buffer.properties;
-    for (var p = 0, len = props.length; p < len; p+=3){
-      if (props[p+2]) {
-        var start = doc.posFromIndex(props[p]);
-        var end = doc.posFromIndex(props[p+1]);
-        //this.log("Property: ", start, end, props[p+2]);
-        doc.markText(start, end, { className: 'face-' + props[p+2], shared: true  });
+    if (buffer.properties) {
+      for (var p = 0, len = props.length; p < len; p+=3){
+        if (props[p+2]) {
+          var start = doc.posFromIndex(props[p]);
+          var end = doc.posFromIndex(props[p+1]);
+          var faceNames = props[p+2];
+          if (typeof faceNames == 'string') faceNames = [faceNames];
+
+          var classNames = [];
+
+          for (var n = 0; n < faceNames.length; n++) {
+            var faceName = faceNames[n];
+            if (!this.faces[faceName] && !missing[faceName]) {
+              missing[faceName] = true;
+              faces.push(faceName);
+              this.log("face:", faceName);
+            }
+            classNames.push("face-" + faceName);
+          }
+
+          doc.markText(start, end, { className: classNames.join(" "), shared: true  });
+        }
       }
     }
   }
+  if (faces.length > 0)
+    this.fetchFaces(faces);
   this.applyWindowConfiguration();
+}
+
+Phase.prototype.fetchFaces = function(faces){
+  this.send(JSON.stringify({ tag: "get-faces", names: faces }));
+}
+
+Phase.prototype.setFaces = function(event){
+  var faces = this.faces;
+  Object.assign(faces, event.faces);
+  var generated = [];
+  for (var name in faces) {
+    var props = [];
+    for (var prop in faces[name]) {
+      props.push(prop + ":" + faces[name][prop]);
+    }
+    var classSpec = ".face-" + name;
+    if (name == "default")
+      classSpec = ".phase-window > .CodeMirror"
+    generated.push(classSpec + "{" + props.join(";") + "}");
+  }
+  this.styledom.text(generated.join("\n"));
 }
 
 Phase.prototype.buffersFromTree = function(tree, out){
