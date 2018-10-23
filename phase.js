@@ -14,6 +14,7 @@ function Phase(config){
   this.parent = config.parent;
   this.logs = [];
   this.tree = [];
+  this.cursorColor = "#ff0000";
   this.windows = Object.create(null);
   this.buffers = Object.create(null);
   this.faces = Object.create(null);
@@ -240,7 +241,13 @@ Phase.prototype.setFaces = function(event){
       classSpec = ".phase-window > .CodeMirror"
     generated.push(classSpec + "{" + props.join(";") + "}");
   }
-  this.styledom.text(generated.join("\n"));
+  var cursorColor = "div.CodeMirror .CodeMirror-cursor {background:" + this.cursorColor + "}";
+  this.styledom.text(generated.join("\n") + cursorColor);
+}
+
+Phase.prototype.setCursorColor = function(event){
+  this.cursorColor = event.color;
+  this.setFaces();
 }
 
 Phase.prototype.buffersFromTree = function(tree, out){

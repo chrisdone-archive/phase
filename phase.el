@@ -89,6 +89,9 @@
   (make-hash-table :test 'equal)
   "List of connected clients.")
 
+(defvar phase-cursor-color ""
+  "Current cursor color.")
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Interactive functions
 
@@ -121,7 +124,8 @@
 
 (defun phase-on-open (websocket)
   (puthash (websocket-accept-string websocket) websocket phase-clients)
-  (phase-send-window-configuration websocket))
+  (phase-send-window-configuration websocket)
+  (phase-send-cursor-color websocket))
 
 (defun phase-window-key (window)
   "Return a unique string name for WINDOW."
@@ -238,6 +242,9 @@
      (phase-json-pair "minibuffer" (phase-json-window (cadr (window-tree))))))))
 
 (defun phase-send-post-command-updates (websocket)
+  (when (not (string= phase-cursor-color
+                      (frame-parameter (selected-frame) 'cursor-color)))
+    (phase-send-cursor-color websocket))
   (websocket-send-text
    websocket
    (phase-json-object
@@ -250,6 +257,16 @@
                  (phase-json-pair (phase-window-key window)
                                   (phase-json-window-points window)))
                (window-list))))))))
+
+(defun phase-send-cursor-color (websocket)
+  (progn
+    (setq phase-cursor-color (frame-parameter (selected-frame) 'cursor-color))
+    (websocket-send-text
+     websocket
+     (phase-json-object
+      (list
+       (phase-json-pair "tag" (phase-json-string "setCursorColor"))
+       (phase-json-pair "color" (phase-json-string phase-cursor-color)))))))
 
 (defun phase-send-change (websocket replacement beg end)
   (websocket-send-text
