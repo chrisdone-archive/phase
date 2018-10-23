@@ -191,6 +191,19 @@
                                    (/ (face-attribute (intern name) :height nil 'default) 10))
                                   "pt")))
                         (phase-json-pair
+                         "font-weight"
+                         (phase-json-string
+                          (cl-case (face-attribute (intern name) :weight nil 'default)
+                            (ultra-bold "bold")
+                            (extra-bold "bold")
+                            (bold "bold")
+                            (semi-bold "bold")
+                            (normal "normal")
+                            (semi-light "normal")
+                            (light "normal")
+                            (extra-light "normal")
+                            (ultra-light "normal"))))
+                        (phase-json-pair
                          "color"
                          (phase-json-string (face-attribute (intern name) :foreground nil 'default)))
                         (phase-json-pair
