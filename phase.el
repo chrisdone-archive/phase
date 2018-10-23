@@ -62,10 +62,10 @@
   (when (and (buffer-live-p (current-buffer))
              (phase-buffer-visible-p (current-buffer)))
     (when (phase-listening-p)
-      (let ((dyn-replacement (buffer-substring beg end))
-            (dyn-range-beg beg)
-            (dyn-range-end (+ beg old-length)))
-        (phase-broadcast 'phase-send-change)))))
+      (phase-broadcast 'phase-send-change
+                       (buffer-substring beg end)
+                       beg
+                       (+ beg old-length)))))
 
 (defun phase-kill-buffer ()
   (when (phase-buffer-visible-p (current-buffer))
@@ -201,8 +201,10 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Outgoing
 
-(defun phase-broadcast (func)
-  (mapc func (hash-table-values phase-clients)))
+(defun phase-broadcast (func &rest args)
+  (mapc (lambda (client)
+          (apply func (cons client args)))
+        (hash-table-values phase-clients)))
 
 (defun phase-send-buffer-killed (websocket)
   (websocket-send-text
@@ -236,18 +238,18 @@
                                   (phase-json-window-points window)))
                (window-list))))))))
 
-(defun phase-send-change (websocket)
+(defun phase-send-change (websocket replacement beg end)
   (websocket-send-text
    websocket
    (phase-json-object
     (list
      (phase-json-pair "tag" (phase-json-string "replaceRange"))
      (phase-json-pair "buffer" (phase-json-string (buffer-name)))
-     (phase-json-pair "replacement" (phase-json-string dyn-replacement))
+     (phase-json-pair "replacement" (phase-json-string replacement))
      (phase-json-pair "properties"
-                      (json-encode (phase-string-properties dyn-replacement)))
-     (phase-json-pair "from" (phase-json-number dyn-range-beg))
-     (phase-json-pair "to" (phase-json-number dyn-range-end))))))
+                      (json-encode (phase-string-properties replacement)))
+     (phase-json-pair "from" (phase-json-number beg))
+     (phase-json-pair "to" (phase-json-number end))))))
 
 (defun phase-json-window-points (window)
   (phase-json-object
