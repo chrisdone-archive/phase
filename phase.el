@@ -41,7 +41,7 @@
   (add-hook 'post-command-hook 'phase-post-command)
   (add-hook 'after-change-functions 'phase-after-change)
   (add-hook 'kill-buffer-hook 'phase-kill-buffer)
-  (remove-hook 'jit-lock-functions 'phase-jit-lock-function))
+  (add-hook 'jit-lock-functions 'phase-jit-lock-function))
 
 ;; TODO:
 ;;
@@ -403,7 +403,7 @@
    for face = (get-text-property point 'face string)
    collect (+ base point)
    collect (+ base next-change)
-   collect face
+   collect (or face 'default)
    do (setq point next-change)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
