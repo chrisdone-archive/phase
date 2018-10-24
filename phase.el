@@ -78,10 +78,17 @@
                        (+ beg old-length)))))
 
 (defun phase-jit-lock-function (beg end)
-  (when (and (buffer-live-p (current-buffer))
-             (phase-buffer-visible-p (current-buffer)))
-    (when (phase-listening-p)
-      (phase-broadcast 'phase-send-jit-lock beg (buffer-substring beg end)))))
+  (run-with-timer
+   0
+   nil
+   (lambda (buffer beg end)
+     (with-current-buffer buffer
+       (when (and (buffer-live-p (current-buffer))
+                  (phase-buffer-visible-p (current-buffer)))
+         (when (phase-listening-p)
+           (phase-broadcast 'phase-send-jit-lock beg (buffer-substring beg end))))))
+  (current-buffer)
+  beg end))
 
 (defun phase-kill-buffer ()
   (when (phase-buffer-visible-p (current-buffer))

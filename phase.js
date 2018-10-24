@@ -233,7 +233,7 @@ Phase.prototype.applyProperties = function(doc, props, missing, faces){
           }
           classNames.push("face-" + faceName);
         }
-        Phase.markTextReplacing(doc, start, end, { className: classNames.join(" "), shared: true });
+        Phase.markTextReplacing(this,doc, start, end, { className: classNames.join(" "), shared: true });
       }
     }
   }
@@ -241,7 +241,7 @@ Phase.prototype.applyProperties = function(doc, props, missing, faces){
 
 // Mark the text, but also adjust/delete any existing marks that
 // overlap with the region.
-Phase.markTextReplacing = function(doc, start, end, props){
+Phase.markTextReplacing = function(self, doc, start, end, props){
   var marks = doc.findMarks(start, end), len = marks.length;
   if (len) {
     for (var i = 0; i < len; i++) {
@@ -252,6 +252,7 @@ Phase.markTextReplacing = function(doc, start, end, props){
       }
     }
   }
+  //self.log("Marking text",JSON.stringify(doc.getRange(start,end,"\\n")),"with",props);
   doc.markText(start, end, props);
 }
 
