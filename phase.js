@@ -242,10 +242,16 @@ Phase.prototype.applyProperties = function(doc, props, missing, faces){
           }
           classNames.push("face-" + faceName);
         }
-        doc.markText(start, end, { className: classNames.join(" "), shared: true  });
+        Phase.markTextReplacing(doc, start, end, { className: classNames.join(" "), shared: true });
       }
     }
   }
+}
+
+// Mark the text, but also adjust/delete any existing marks that
+// overlap with the region.
+Phase.markTextReplacing = function(doc, start, end, props){
+  doc.markText(start, end, props);
 }
 
 Phase.prototype.fetchFaces = function(faces){
