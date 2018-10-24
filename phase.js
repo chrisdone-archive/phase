@@ -56,13 +56,35 @@ Phase.prototype.connect = function(){
   }
 }
 
+Phase.prototype.jitLock = function(event){
+  if (this.buffers[event.buffer]) {
+    this.log("JIT LOCK!");
+    var buffer = this.buffers[event.buffer];
+    var doc = buffer.doc;
+    var missing = Object.create(null);
+    var faces = [];
+    this.applyProperties(doc, event.properties, missing, faces);
+    var self = this;
+    if (faces.length > 0)
+      self.fetchFaces(faces);
+  }
+}
+
 Phase.prototype.replaceRange = function(event){
   if (this.buffers[event.buffer]) {
-    var doc = this.buffers[event.buffer].doc;
+    var buffer = this.buffers[event.buffer];
+    var doc = buffer.doc;
     var pos1 = doc.posFromIndex(event.from-1);
     var pos2 = doc.posFromIndex(event.to-1);
     doc.replaceRange(event.replacement,pos1,pos2);
-    this.log("replaceRange:",pos1,pos2);
+    var missing = Object.create(null);
+    var faces = [];
+
+    this.applyProperties(doc, event.properties, missing, faces);
+
+    var self = this;
+    if (faces.length > 0)
+      self.fetchFaces(faces);
   }
 }
 
@@ -76,6 +98,7 @@ Phase.prototype.setWindowPoints = function(event){
   for (var key in this.windows) {
     var sel = event.windows[key];
     var win = this.windows[key];
+
     win.cm.setSelection(sel, sel);
   }
 }
@@ -192,35 +215,39 @@ Phase.prototype.setBuffers = function(event){
     var buffer = buffers[i];
     this.buffers[buffers[i].name] = buffer;
     buffer.doc = CodeMirror.Doc(buffers[i].string);
-    var doc = buffer.doc, props = buffer.properties;
-    if (buffer.properties) {
-      for (var p = 0, len = props.length; p < len; p+=3){
-        if (props[p+2]) {
-          var start = doc.posFromIndex(props[p]);
-          var end = doc.posFromIndex(props[p+1]);
-          var faceNames = props[p+2];
-          if (typeof faceNames == 'string') faceNames = [faceNames];
-
-          var classNames = [];
-
-          for (var n = 0; n < faceNames.length; n++) {
-            var faceName = faceNames[n];
-            if (!this.faces[faceName] && !missing[faceName]) {
-              missing[faceName] = true;
-              faces.push(faceName);
-              this.log("face:", faceName);
-            }
-            classNames.push("face-" + faceName);
-          }
-
-          doc.markText(start, end, { className: classNames.join(" "), shared: true  });
-        }
-      }
-    }
+    this.applyProperties(buffer.doc, buffer.properties, missing, faces);
   }
   if (faces.length > 0)
     this.fetchFaces(faces);
   this.applyWindowConfiguration();
+}
+
+Phase.prototype.applyProperties = function(doc, props, missing, faces){
+  this.log("applyProperties:", doc,props);
+  if (props) {
+    for (var p = 0, len = props.length; p < len; p+=3){
+      if (props[p+2]) {
+        var start = doc.posFromIndex(props[p]);
+        var end = doc.posFromIndex(props[p+1]);
+        var faceNames = props[p+2];
+        if (typeof faceNames == 'string') faceNames = [faceNames];
+
+        var classNames = [];
+
+        for (var n = 0; n < faceNames.length; n++) {
+          var faceName = faceNames[n];
+          if (!this.faces[faceName] && !missing[faceName]) {
+            missing[faceName] = true;
+            faces.push(faceName);
+            this.log("face:", faceName);
+          }
+          classNames.push("face-" + faceName);
+        }
+
+        doc.markText(start, end, { className: classNames.join(" "), shared: true  });
+      }
+    }
+  }
 }
 
 Phase.prototype.fetchFaces = function(faces){
@@ -237,9 +264,12 @@ Phase.prototype.setFaces = function(event){
       props.push(prop + ":" + faces[name][prop]);
     }
     var classSpec = ".face-" + name;
-    if (name == "default")
-      classSpec = ".phase-window > .CodeMirror"
-    generated.push(classSpec + "{" + props.join(";") + "}");
+    if (name == "default") {
+      generated.push(".phase-window > .CodeMirror{" + props.join(";") + "}");
+      generated.push(classSpec + "{" + props.join(";") + "}");
+    } else {
+      generated.push(classSpec + "{" + props.join(";") + "}");
+    }
   }
   var cursorColor = "div.CodeMirror .CodeMirror-cursor {background:" + this.cursorColor + "}";
   this.styledom.text(generated.join("\n") + cursorColor);

@@ -40,7 +40,8 @@
   (add-hook 'window-configuration-change-hook 'phase-window-configuration-change)
   (add-hook 'post-command-hook 'phase-post-command)
   (add-hook 'after-change-functions 'phase-after-change)
-  (add-hook 'kill-buffer-hook 'phase-kill-buffer))
+  (add-hook 'kill-buffer-hook 'phase-kill-buffer)
+  (remove-hook 'jit-lock-functions 'phase-jit-lock-function))
 
 ;; TODO:
 ;;
@@ -73,6 +74,12 @@
                        (buffer-substring beg end)
                        beg
                        (+ beg old-length)))))
+
+(defun phase-jit-lock-function (beg end)
+  (when (and (buffer-live-p (current-buffer))
+             (phase-buffer-visible-p (current-buffer)))
+    (when (phase-listening-p)
+      (phase-broadcast 'phase-send-jit-lock beg (buffer-substring beg end)))))
 
 (defun phase-kill-buffer ()
   (when (phase-buffer-visible-p (current-buffer))
@@ -173,7 +180,7 @@
                                           (list (phase-json-pair "name" (phase-json-string name))
                                                 (phase-json-pair "string" (phase-json-string string))
                                                 (phase-json-pair "properties"
-                                                                 (json-encode (phase-string-properties string)))))))
+                                                                 (json-encode (phase-string-properties 0 string)))))))
                                      names))))))))
      ((string= tag "get-faces")
       (let ((names (cdr (assoc 'names event))))
@@ -284,9 +291,19 @@
      (phase-json-pair "buffer" (phase-json-string (buffer-name)))
      (phase-json-pair "replacement" (phase-json-string replacement))
      (phase-json-pair "properties"
-                      (json-encode (phase-string-properties replacement)))
+                      (json-encode (phase-string-properties (1- beg) replacement)))
      (phase-json-pair "from" (phase-json-number beg))
      (phase-json-pair "to" (phase-json-number end))))))
+
+(defun phase-send-jit-lock (websocket beg replacement)
+  (websocket-send-text
+   websocket
+   (phase-json-object
+    (list
+     (phase-json-pair "tag" (phase-json-string "jitLock"))
+     (phase-json-pair "buffer" (phase-json-string (buffer-name)))
+     (phase-json-pair "properties"
+                      (json-encode (phase-string-properties (1- beg) replacement)))))))
 
 (defun phase-json-window-points (window)
   (phase-json-object
@@ -375,7 +392,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Text properties & faces
 
-(defun phase-string-properties (string)
+(defun phase-string-properties (base string)
   "Return properties of STRING as a list."
   (cl-loop
    with point = 0
@@ -384,8 +401,8 @@
    for next-change = (or (next-property-change point string)
                          point-max)
    for face = (get-text-property point 'face string)
-   collect point
-   collect next-change
+   collect (+ base point)
+   collect (+ base next-change)
    collect face
    do (setq point next-change)))
 
