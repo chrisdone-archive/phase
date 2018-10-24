@@ -16,7 +16,6 @@ function Phase(config){
   this.tree = [];
   this.cursorColor = "#ff0000";
   this.windows = Object.create(null);
-  this.css = Object.create(null);
   this.buffers = Object.create(null);
   this.faces = Object.create(null);
   this.lastlog = window.performance.now();
@@ -242,7 +241,6 @@ Phase.prototype.applyProperties = function(doc, props, missing, faces){
             faces.push(faceName);
           }
           classNames.push("face-" + faceName);
-          doc.markText(start, end, { css: this.css[faceName], shared: true  });
         }
         doc.markText(start, end, { className: classNames.join(" "), shared: true  });
       }
@@ -266,10 +264,8 @@ Phase.prototype.setFaces = function(event){
     var classSpec = ".face-" + name;
     if (name == "default") {
       generated.push(".phase-window > .CodeMirror{" + props.join(";") + "}");
-      this.css[name] = props.join(";");
       generated.push(classSpec + "{" + props.join(";") + "}");
     } else {
-      this.css[name] = props.join(";");
       generated.push(classSpec + "{" + props.join(";") + "}");
     }
   }
