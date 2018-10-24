@@ -248,7 +248,7 @@ Phase.markTextReplacing = function(doc, start, end, props){
       var marker = marks[i];
       var pos = marker.find();
       if (pos) {
-        marker.clear();
+        marker.clear(); // FIXME: TODO: re-create but out of the region.
       }
     }
   }

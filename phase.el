@@ -40,8 +40,7 @@
   (add-hook 'window-configuration-change-hook 'phase-window-configuration-change)
   (add-hook 'post-command-hook 'phase-post-command)
   (add-hook 'after-change-functions 'phase-after-change)
-  (add-hook 'kill-buffer-hook 'phase-kill-buffer)
-  (add-hook 'jit-lock-functions 'phase-jit-lock-function))
+  (add-hook 'kill-buffer-hook 'phase-kill-buffer))
 
 ;; TODO:
 ;;
@@ -63,6 +62,9 @@
     (phase-broadcast 'phase-send-window-configuration)))
 
 (defun phase-post-command ()
+  (when (and (buffer-live-p (current-buffer))
+             (phase-buffer-visible-p (current-buffer)))
+    (add-hook 'jit-lock-functions 'phase-jit-lock-function))
   (when (phase-listening-p)
     (phase-broadcast 'phase-send-post-command-updates)))
 
