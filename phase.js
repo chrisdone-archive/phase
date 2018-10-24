@@ -58,7 +58,6 @@ Phase.prototype.connect = function(){
 
 Phase.prototype.jitLock = function(event){
   if (this.buffers[event.buffer]) {
-    this.log("JIT LOCK!");
     var buffer = this.buffers[event.buffer];
     var doc = buffer.doc;
     var missing = Object.create(null);
@@ -122,7 +121,6 @@ Phase.prototype.applyWindowConfiguration = function(){
     left: 0,
     top: 0
   };
-  this.log("Container dimensions", dim);
   var usedWindows = Object.create(null);
   this.applyTree(
     this.tree,
@@ -131,7 +129,6 @@ Phase.prototype.applyWindowConfiguration = function(){
   // Cleanup unused windows
   for (var key in this.windows) {
     if (!usedWindows[key]) {
-      this.log("GC window", key);
       this.windows[key].doc.unlinkDoc(this.windows[key].linkedDoc);
       this.windows[key].dom.remove();
       delete this.windows[key];
@@ -150,17 +147,13 @@ Phase.prototype.applyTree = function(tree, dim, out){
 }
 
 Phase.prototype.setWindow = function(window, dim) {
-  this.log("Make window for", window, "dimensions", dim);
   if (this.windows[window.key]) {
-    this.log("Window",window.key,"already present.");
     this.windows[window.key].dom.css(dim);
     var oldbuffer = this.windows[window.key].buffer;
     this.windows[window.key].buffer = window.buffer;
     if (oldbuffer == window.buffer) {
-      this.log("No buffer change.");
       this.windows[window.key].cm.refresh();
     } else {
-      this.log("Buffer changed in this window", window.key,"to",window.buffer);
       var buffer = this.buffers[window.buffer];
       var linkedDoc = buffer.doc.linkedDoc();
       var oldLinkedDoc = this.windows[window.key].cm.swapDoc(linkedDoc);
@@ -169,7 +162,6 @@ Phase.prototype.setWindow = function(window, dim) {
     }
   } else {
     this.windows[window.key] = window;
-    this.log("New window",window);
 
     // Create DOM container
     var buffer = this.buffers[window.buffer];
@@ -223,7 +215,6 @@ Phase.prototype.setBuffers = function(event){
 }
 
 Phase.prototype.applyProperties = function(doc, props, missing, faces){
-  this.log("applyProperties:", doc,props);
   if (props) {
     for (var p = 0, len = props.length; p < len; p+=3){
       if (props[p+2]) {
@@ -251,6 +242,16 @@ Phase.prototype.applyProperties = function(doc, props, missing, faces){
 // Mark the text, but also adjust/delete any existing marks that
 // overlap with the region.
 Phase.markTextReplacing = function(doc, start, end, props){
+  var marks = doc.findMarks(start, end), len = marks.length;
+  if (len) {
+    for (var i = 0; i < len; i++) {
+      var marker = marks[i];
+      var pos = marker.find();
+      if (pos) {
+        marker.clear();
+      }
+    }
+  }
   doc.markText(start, end, props);
 }
 
