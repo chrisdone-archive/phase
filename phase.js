@@ -16,7 +16,7 @@ function Phase(config){
   this.tree = [];
   this.cursorColor = "#ff0000";
   this.windows = Object.create(null);
-  this.minibuffer = Object.create(null);
+  this.minibuffer = { minibuffer: true };
   this.buffers = Object.create(null);
   this.faces = Object.create(null);
   this.lastlog = window.performance.now();
@@ -96,17 +96,19 @@ Phase.prototype.killBuffer = function(event){
 
 Phase.prototype.setWindowPoints = function(event){
   for (var key in this.windows) {
-    var sel = event.windows[key];
+    var props = event.windows[key];
     var win = this.windows[key];
-    if (sel) {
+    if (props) {
+      var sel = props.point;
       win.cm.setSelection(sel, sel);
+      this.setWindowActive(win, props.active);
     }
   }
 }
 
 Phase.prototype.setWindowConfiguration = function(event){
   var buffers = [];
-  this.minibuffer = event.minibuffer;
+  Object.assign(this.minibuffer, event.minibuffer);
   if (!this.buffers[this.minibuffer.buffer])
     buffers.push(this.minibuffer.buffer)
   this.buffersFromTree(event.tree, buffers);
@@ -175,6 +177,7 @@ Phase.prototype.setWindow = function(window, dim) {
     // Create DOM container
     var buffer = this.buffers[window.buffer];
     var windowdom = $('<div class="phase-window"></div>');
+    if (window.minibuffer) windowdom.addClass("minibuffer");
     windowdom.css(dim).css('font-family','monospace').css('white-space','pre');
     this.container.append(windowdom);
 
@@ -224,6 +227,20 @@ Phase.prototype.setMiniBuffer = function(event){
     this.fetchFaces(faces);
   this.minibuffer.buffer = event.name;
   this.swapWindowBuffer(this.minibuffer);
+  this.setWindowActive(this.minibuffer, event.active);
+}
+
+Phase.prototype.setWindowActive = function(window, active){
+  if (window.dom) {
+    if (active)
+      window.dom.addClass('active-window').removeClass('inactive-window');
+    else
+      window.dom.removeClass('active-window').addClass('inactive-window');
+  } else {
+    this.log("window[4] = ",this.windows["4"]);
+    this.log("window = ", window);
+    throw "no dom for window!";
+  }
 }
 
 Phase.prototype.setBuffers = function(event){
@@ -308,7 +325,9 @@ Phase.prototype.setFaces = function(event){
       generated.push(classSpec + "{" + props.join(";") + "}");
     }
   }
-  var cursorColor = "div.CodeMirror .CodeMirror-cursor {background:" + this.cursorColor + "}";
+  var cursorColor =
+      ".active-window div.CodeMirror .CodeMirror-cursor {background:" + this.cursorColor + "}" +
+      ".inactive-window div.CodeMirror .CodeMirror-cursor {border: 1px solid " + this.cursorColor + "}";
   this.styledom.text(generated.join("\n") + cursorColor);
 }
 

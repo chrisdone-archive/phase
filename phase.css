@@ -37,5 +37,9 @@ div.CodeMirror-cursors {
 div.CodeMirror .CodeMirror-cursor {
   width: auto;
   border: 0;
-  background: rgba(0, 0, 0, .4);
+  height: 1ex;
+}
+
+.minibuffer.inactive-window div.CodeMirror .CodeMirror-cursor {
+  display: none;
 }

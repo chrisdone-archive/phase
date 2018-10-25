@@ -295,6 +295,7 @@
         (list (phase-json-pair "tag" (phase-json-string "setMiniBuffer"))
               (phase-json-pair "name" (phase-json-string (buffer-name)))
               (phase-json-pair "string" (phase-json-string string))
+              (phase-json-pair "active" (phase-json-bool (minibuffer-window-active-p (selected-window))))
               (phase-json-pair "properties"
                                (json-encode (phase-string-properties 0 string)))))))))
 
@@ -306,6 +307,7 @@
       (list (phase-json-pair "tag" (phase-json-string "setMiniBuffer"))
             (phase-json-pair "name" (phase-json-string (buffer-name)))
             (phase-json-pair "string" (phase-json-string string))
+            (phase-json-pair "active" (phase-json-bool (minibuffer-window-active-p (selected-window))))
             (phase-json-pair "properties"
                              (json-encode (phase-string-properties 0 string))))))))
 
@@ -323,7 +325,9 @@
       (phase-json-object
        (mapcar (lambda (window)
                  (phase-json-pair (phase-window-key window)
-                                  (phase-json-window-points window)))
+                                  (phase-json-object
+                                   (list (phase-json-pair "point" (phase-json-window-points window))
+                                         (phase-json-pair "active" (phase-json-bool (eq (selected-window) window)))))))
                (window-list))))))))
 
 (defun phase-send-cursor-color (websocket)
