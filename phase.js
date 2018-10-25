@@ -46,7 +46,7 @@ Phase.prototype.connect = function(){
     self.log('WebSocket error: ', error);
   };
   conn.onmessage = function (msg) {
-    self.log('Receive:', msg);
+    //self.log('Receive:', msg);
     var event = JSON.parse(msg.data);
     self.log('Message:', event);
     var handler = self[event.tag];
@@ -168,11 +168,7 @@ Phase.prototype.setWindow = function(window, dim) {
     if (oldbuffer == window.buffer) {
       this.windows[window.key].cm.refresh();
     } else {
-      var buffer = this.buffers[window.buffer];
-      var linkedDoc = buffer.doc.linkedDoc();
-      var oldLinkedDoc = this.windows[window.key].cm.swapDoc(linkedDoc);
-      this.windows[window.key].doc.unlinkDoc(oldLinkedDoc);
-      this.windows[window.key].cm.setSelection(window.point, window.point);
+      this.swapWindowBuffer(window);
     }
   } else {
     this.windows[window.key] = window;
@@ -184,7 +180,7 @@ Phase.prototype.setWindow = function(window, dim) {
     this.container.append(windowdom);
 
     // Create CodeMirror instance
-    var cm = CodeMirror(windowdom[0], { readOnly: true });
+    var cm = CodeMirror(windowdom[0], { readOnly: true, scrollbarStyle: "null" });
     var linkedDoc = buffer.doc.linkedDoc();
     cm.swapDoc(linkedDoc);
     cm.setSelection(window.point, window.point);
@@ -194,6 +190,14 @@ Phase.prototype.setWindow = function(window, dim) {
     this.windows[window.key].doc = buffer.doc;
     this.windows[window.key].dom = windowdom;
   }
+}
+
+Phase.prototype.swapWindowBuffer = function(window){
+  var buffer = this.buffers[window.buffer];
+  var linkedDoc = buffer.doc.linkedDoc();
+  var oldLinkedDoc = this.windows[window.key].cm.swapDoc(linkedDoc);
+  this.windows[window.key].doc.unlinkDoc(oldLinkedDoc);
+  this.windows[window.key].cm.setSelection(window.point, window.point);
 }
 
 Phase.prototype.applySplit = function(split, dim, out){
@@ -213,19 +217,33 @@ Phase.prototype.applySplit = function(split, dim, out){
   }
 };
 
+Phase.prototype.setMiniBuffer = function(event){
+  var missing = Object.create(null);
+  var faces = [];
+  this.setBuffer(event, missing, faces);
+  if (faces.length > 0)
+    this.fetchFaces(faces);
+  this.minibuffer.buffer = event.name;
+  this.swapWindowBuffer(this.minibuffer);
+}
+
 Phase.prototype.setBuffers = function(event){
   var buffers = event.buffers;
   var missing = Object.create(null);
   var faces = [];
   for (var i = 0; i < buffers.length; i++) {
     var buffer = buffers[i];
-    this.buffers[buffers[i].name] = buffer;
-    buffer.doc = CodeMirror.Doc(buffers[i].string);
-    this.applyProperties(buffer.doc, buffer.properties, missing, faces);
+    this.setBuffer(buffer, missing, faces);
   }
   if (faces.length > 0)
     this.fetchFaces(faces);
   this.applyWindowConfiguration();
+}
+
+Phase.prototype.setBuffer = function(buffer, missing, faces){
+  this.buffers[buffer.name] = buffer;
+  buffer.doc = CodeMirror.Doc(buffer.string);
+  this.applyProperties(buffer.doc, buffer.properties, missing, faces);
 }
 
 Phase.prototype.applyProperties = function(doc, props, missing, faces){

@@ -36,11 +36,20 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Hooks
 
-(progn
-  (add-hook 'window-configuration-change-hook 'phase-window-configuration-change)
+(add-hook 'minibuffer-setup-hook 'phase-enter-minibuffer)
+(add-hook 'window-configuration-change-hook 'phase-window-configuration-change)
+(add-hook 'kill-buffer-hook 'phase-kill-buffer)
+(add-hook 'post-command-hook 'phase-post-command)
+(add-hook 'after-change-functions 'phase-after-change)
+
+(defun phase-enter-minibuffer ()
+  (when (phase-listening-p)
+    (phase-broadcast 'phase-send-enter-minibuffer))
+  (phase-setup-hooks))
+
+(defun phase-setup-hooks ()
   (add-hook 'post-command-hook 'phase-post-command)
-  (add-hook 'after-change-functions 'phase-after-change)
-  (add-hook 'kill-buffer-hook 'phase-kill-buffer))
+  (add-hook 'after-change-functions 'phase-after-change))
 
 ;; TODO:
 ;;
@@ -87,8 +96,8 @@
                   (phase-buffer-visible-p (current-buffer)))
          (when (phase-listening-p)
            (phase-broadcast 'phase-send-jit-lock beg (buffer-substring beg end))))))
-  (current-buffer)
-  beg end))
+   (current-buffer)
+   beg end))
 
 (defun phase-kill-buffer ()
   (when (phase-buffer-visible-p (current-buffer))
@@ -182,16 +191,19 @@
            (phase-json-pair "tag" (phase-json-string "setBuffers"))
            (phase-json-pair "buffers"
                             (phase-json-array
-                             (mapcar (lambda (name)
-                                       (phase-json-object
-                                        (let ((string
-                                               (with-current-buffer (get-buffer name)
-                                                 (buffer-string))))
-                                          (list (phase-json-pair "name" (phase-json-string name))
-                                                (phase-json-pair "string" (phase-json-string string))
-                                                (phase-json-pair "properties"
-                                                                 (json-encode (phase-string-properties 0 string)))))))
-                                     names))))))))
+                             (cl-remove-if-not
+                              #'identity
+                              (mapcar (lambda (name)
+                                        (when (get-buffer name)
+                                          (phase-json-object
+                                           (let ((string
+                                                  (with-current-buffer (get-buffer name)
+                                                    (buffer-string))))
+                                             (list (phase-json-pair "name" (phase-json-string name))
+                                                   (phase-json-pair "string" (phase-json-string string))
+                                                   (phase-json-pair "properties"
+                                                                    (json-encode (phase-string-properties 0 string))))))))
+                                      names)))))))))
      ((string= tag "get-faces")
       (let ((names (cdr (assoc 'names event))))
         (websocket-send-text
@@ -264,6 +276,17 @@
      (phase-json-pair "tree" (phase-json-window-tree (car (window-tree))))
      (phase-json-pair "selected" (phase-json-string (phase-window-key (selected-window))))
      (phase-json-pair "minibuffer" (phase-json-window (cadr (window-tree))))))))
+
+(defun phase-send-enter-minibuffer (websocket)
+  (websocket-send-text
+   websocket
+   (phase-json-object
+    (let ((string (buffer-string)))
+      (list (phase-json-pair "tag" (phase-json-string "setMiniBuffer"))
+            (phase-json-pair "name" (phase-json-string (buffer-name)))
+            (phase-json-pair "string" (phase-json-string string))
+            (phase-json-pair "properties"
+                             (json-encode (phase-string-properties 0 string))))))))
 
 (defun phase-send-post-command-updates (websocket)
   (when (not (string= phase-cursor-color
