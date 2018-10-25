@@ -37,6 +37,7 @@
 ;; Hooks
 
 (add-hook 'minibuffer-setup-hook 'phase-enter-minibuffer)
+(add-hook 'minibuffer-exit-hook 'phase-exit-minibuffer)
 (add-hook 'window-configuration-change-hook 'phase-window-configuration-change)
 (add-hook 'kill-buffer-hook 'phase-kill-buffer)
 (add-hook 'post-command-hook 'phase-post-command)
@@ -46,6 +47,14 @@
   (when (phase-listening-p)
     (phase-broadcast 'phase-send-enter-minibuffer))
   (phase-setup-hooks))
+
+(defun phase-exit-minibuffer ()
+  (run-with-timer
+   0
+   nil
+   (lambda ()
+     (when (phase-listening-p)
+       (phase-broadcast 'phase-send-exit-minibuffer)))))
 
 (defun phase-setup-hooks ()
   (add-hook 'post-command-hook 'phase-post-command)
@@ -276,6 +285,18 @@
      (phase-json-pair "tree" (phase-json-window-tree (car (window-tree))))
      (phase-json-pair "selected" (phase-json-string (phase-window-key (selected-window))))
      (phase-json-pair "minibuffer" (phase-json-window (cadr (window-tree))))))))
+
+(defun phase-send-exit-minibuffer (websocket)
+  (websocket-send-text
+   websocket
+   (phase-json-object
+    (with-current-buffer (window-buffer (minibuffer-window))
+      (let ((string (buffer-string)))
+        (list (phase-json-pair "tag" (phase-json-string "setMiniBuffer"))
+              (phase-json-pair "name" (phase-json-string (buffer-name)))
+              (phase-json-pair "string" (phase-json-string string))
+              (phase-json-pair "properties"
+                               (json-encode (phase-string-properties 0 string)))))))))
 
 (defun phase-send-enter-minibuffer (websocket)
   (websocket-send-text

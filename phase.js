@@ -123,7 +123,6 @@ Phase.prototype.applyWindowConfiguration = function(){
   var usedWindows = Object.create(null);
   var minibufferHeight = 20;
   usedWindows[this.minibuffer.key] = this.minibuffer;
-  this.log('set minibuffer',this.minibuffer);
   this.setWindow(this.minibuffer, {
     width: container.width(),
     height: minibufferHeight,
