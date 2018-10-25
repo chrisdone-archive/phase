@@ -319,7 +319,8 @@
    websocket
    (phase-json-object
     (list
-     (phase-json-pair "tag" (phase-json-string "setWindowPoints"))
+     (phase-json-pair "tag" (phase-json-string "setPostCommand"))
+     (phase-json-pair "currentMessage" (phase-json-string (if (current-message) (current-message) "")))
      (phase-json-pair
       "windows"
       (phase-json-object

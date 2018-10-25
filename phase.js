@@ -94,7 +94,7 @@ Phase.prototype.killBuffer = function(event){
   }
 }
 
-Phase.prototype.setWindowPoints = function(event){
+Phase.prototype.setPostCommand = function(event){
   for (var key in this.windows) {
     var props = event.windows[key];
     var win = this.windows[key];
@@ -231,15 +231,12 @@ Phase.prototype.setMiniBuffer = function(event){
 }
 
 Phase.prototype.setWindowActive = function(window, active){
+  window.active = active;
   if (window.dom) {
     if (active)
       window.dom.addClass('active-window').removeClass('inactive-window');
     else
       window.dom.removeClass('active-window').addClass('inactive-window');
-  } else {
-    this.log("window[4] = ",this.windows["4"]);
-    this.log("window = ", window);
-    throw "no dom for window!";
   }
 }
 
