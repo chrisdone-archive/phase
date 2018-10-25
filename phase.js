@@ -16,6 +16,7 @@ function Phase(config){
   this.tree = [];
   this.cursorColor = "#ff0000";
   this.windows = Object.create(null);
+  this.minibuffer = Object.create(null);
   this.buffers = Object.create(null);
   this.faces = Object.create(null);
   this.lastlog = window.performance.now();
@@ -97,13 +98,17 @@ Phase.prototype.setWindowPoints = function(event){
   for (var key in this.windows) {
     var sel = event.windows[key];
     var win = this.windows[key];
-
-    win.cm.setSelection(sel, sel);
+    if (sel) {
+      win.cm.setSelection(sel, sel);
+    }
   }
 }
 
 Phase.prototype.setWindowConfiguration = function(event){
   var buffers = [];
+  this.minibuffer = event.minibuffer;
+  if (!this.buffers[this.minibuffer.buffer])
+    buffers.push(this.minibuffer.buffer)
   this.buffersFromTree(event.tree, buffers);
   this.tree = event.tree;
   if (buffers.length > 0) {
@@ -115,13 +120,22 @@ Phase.prototype.setWindowConfiguration = function(event){
 
 Phase.prototype.applyWindowConfiguration = function(){
   var container = this.container;
+  var usedWindows = Object.create(null);
+  var minibufferHeight = 20;
+  usedWindows[this.minibuffer.key] = this.minibuffer;
+  this.log('set minibuffer',this.minibuffer);
+  this.setWindow(this.minibuffer, {
+    width: container.width(),
+    height: minibufferHeight,
+    left: 0,
+    top: container.height() - minibufferHeight
+  });
   var dim = {
     width: container.width(),
-    height: container.height(),
+    height: container.height() - minibufferHeight,
     left: 0,
     top: 0
   };
-  var usedWindows = Object.create(null);
   this.applyTree(
     this.tree,
     dim,
@@ -310,9 +324,13 @@ Phase.prototype.log = function(){
   var args = Array.prototype.slice.call(arguments);
   args.unshift("Phase: ");
   args.unshift(diff.toFixed(3) + "ms");
-  self.logs.push(args);
-  clearTimeout(self.logger);
-  self.logger = setTimeout(function(){ self.flushlog(); }, 500);
+  if (false) {
+    console.log.apply(console, args);
+  } else {
+    self.logs.push(args);
+    clearTimeout(self.logger);
+    self.logger = setTimeout(function(){ self.flushlog(); }, 500);
+  }
 }
 
 Phase.prototype.flushlog = function(){

@@ -98,8 +98,9 @@
 
 (defun phase-buffer-visible-p (buffer)
   (let ((name (buffer-name buffer)))
-    (and (> (length name) 0)
-         (not (string= " " (substring name 0 1))))))
+    (or (minibufferp buffer)
+        (and (> (length name) 0)
+             (not (string= " " (substring name 0 1)))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Globals
